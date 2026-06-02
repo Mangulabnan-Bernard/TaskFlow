@@ -1,26 +1,98 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * TaskFlow design tokens (Tailwind v4 — CSS-based config).
+ * Each --color-* token auto-generates utilities: bg-*, text-*, border-*, ring-*, etc.
+ * The whole product is a fixed dark theme matching the dashboard design.
+ */
+@theme {
+  /* Surfaces (dark navy stack) */
+  --color-canvas: #090c15; /* app background            */
+  --color-surface: #111726; /* panels / cards            */
+  --color-elevated: #161d2e; /* nested cards, hover state */
+  --color-line: #222b41; /* hairline borders          */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  /* Brand — periwinkle accent */
+  --color-brand: #8b9cf8;
+  --color-brand-light: #b7c2fb; /* button face, hover  */
+  --color-brand-dark: #5566d4; /* pressed, rings      */
+
+  /* Status */
+  --color-success: #35d39a;
+  --color-danger: #f87171;
+
+  /* Typography (Geist, wired in app/layout.tsx) */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-canvas);
+  color: #e6e9f2;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Eyebrow / metadata label — the small uppercase mono text in the design
+   (dates, "LEAD ARCHITECT", timestamps, status pills). */
+.label-eyebrow {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.6875rem; /* 11px */
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Slim, unobtrusive scrollbars to match the dark UI. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--color-line);
+  border-radius: 9999px;
+}
+*::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+/* Shared focus ring for interactive components. */
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--color-canvas),
+    0 0 0 4px var(--color-brand);
+}
+
+/* Modal enter animations (no exit; component unmounts on close). */
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.animate-overlay-in {
+  animation: overlay-in 0.15s ease-out;
+}
+.animate-panel-in {
+  animation: panel-in 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
