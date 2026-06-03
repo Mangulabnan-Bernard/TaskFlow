@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -14,13 +14,33 @@ import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import {
   kanbanColumns,
   tasks as initialTasks,
+  type KanbanColumnDef,
   type Task,
   type TaskStatus,
 } from "@/lib/data";
+import { cn } from "@/lib/utils";
 import { KanbanColumn } from "@/components/board/KanbanColumn";
 import { TaskCard } from "@/components/board/TaskCard";
 
+const DOT: Record<KanbanColumnDef["accent"], string> = {
+  neutral: "bg-slate-400",
+  brand: "bg-brand",
+  success: "bg-success",
+};
+
+// Hydration-safe client check (no setState-in-effect): false on the server and
+// the first client render, true thereafter.
+const noopSubscribe = () => () => {};
+function useIsClient() {
+  return useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false,
+  );
+}
+
 export function KanbanBoard() {
+  const isClient = useIsClient();
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -32,6 +52,36 @@ export function KanbanBoard() {
   );
 
   const activeTask = tasks.find((task) => task.id === activeId) ?? null;
+  const byStatus = (status: TaskStatus) =>
+    tasks.filter((task) => task.status === status);
+
+  // @dnd-kit injects SSR-unstable accessibility IDs onto every draggable, which
+  // causes a hydration mismatch. Render an identical static board until the
+  // client mounts, then swap in the interactive DndContext, with no visual flash.
+  if (!isClient) {
+    return (
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {kanbanColumns.map((column) => (
+          <div key={column.status} className="flex w-full flex-col">
+            <div className="mb-3 flex items-center gap-2 px-1">
+              <span className={cn("size-2 rounded-full", DOT[column.accent])} />
+              <h3 className="text-sm font-semibold text-white">
+                {column.label}
+              </h3>
+              <span className="text-xs text-slate-500 tabular-nums">
+                {byStatus(column.status).length}
+              </span>
+            </div>
+            <div className="flex min-h-96 flex-1 flex-col gap-3 rounded-xl border border-line bg-surface/60 p-3">
+              {byStatus(column.status).map((task) => (
+                <TaskCard key={task.id} task={task} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   function handleDragStart(event: DragStartEvent) {
     setActiveId(String(event.active.id));
@@ -68,7 +118,7 @@ export function KanbanBoard() {
           <KanbanColumn
             key={column.status}
             column={column}
-            tasks={tasks.filter((task) => task.status === column.status)}
+            tasks={byStatus(column.status)}
           />
         ))}
       </div>
