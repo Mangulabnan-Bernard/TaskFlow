@@ -209,3 +209,139 @@ export const dashboardSummary = {
   activeProjectCount: 4,
   date: "October 24, 2023",
 };
+
+/* ----------------------------------------------------------------------------
+ * Kanban board (Day 3)
+ * Statuses match the assessment spec: Todo / In Progress / Done.
+ * -------------------------------------------------------------------------- */
+
+export type TaskStatus = "todo" | "in-progress" | "done";
+export type TaskPriority = "low" | "medium" | "high";
+
+export interface Task {
+  id: string;
+  title: string;
+  /** Project name, shown as a chip on the card. */
+  project: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  assignee?: TeamAvatar;
+}
+
+export interface KanbanColumnDef {
+  status: TaskStatus;
+  label: string;
+  accent: "neutral" | "brand" | "success";
+}
+
+export const kanbanColumns: KanbanColumnDef[] = [
+  { status: "todo", label: "Todo", accent: "neutral" },
+  { status: "in-progress", label: "In Progress", accent: "brand" },
+  { status: "done", label: "Done", accent: "success" },
+];
+
+export const tasks: Task[] = [
+  {
+    id: "TF-118",
+    title: "Design auth token refresh flow",
+    project: "Quantum API Integration",
+    status: "todo",
+    priority: "high",
+    assignee: { initials: "MJ", color: "bg-slate-500" },
+  },
+  {
+    id: "TF-121",
+    title: "Audit color-contrast tokens for accessibility",
+    project: "Aurora UI Rebranding",
+    status: "todo",
+    priority: "medium",
+    assignee: { initials: "JS", color: "bg-slate-700" },
+  },
+  {
+    id: "TF-124",
+    title: "Write API contract for satellite mesh",
+    project: "Quantum API Integration",
+    status: "todo",
+    priority: "low",
+  },
+  {
+    id: "TF-109",
+    title: "Implement WebSocket handshake protocol",
+    project: "Quantum API Integration",
+    status: "in-progress",
+    priority: "high",
+    assignee: { initials: "MJ", color: "bg-slate-500" },
+  },
+  {
+    id: "TF-112",
+    title: "Migrate legacy button components to atomic system",
+    project: "Aurora UI Rebranding",
+    status: "in-progress",
+    priority: "medium",
+    assignee: { initials: "JS", color: "bg-slate-700" },
+  },
+  {
+    id: "TF-142",
+    title: "Fix API timeout bug",
+    project: "Quantum API Integration",
+    status: "done",
+    priority: "high",
+    assignee: { initials: "SC", color: "bg-slate-600" },
+  },
+  {
+    id: "TF-098",
+    title: "Set up design-token build pipeline",
+    project: "Aurora UI Rebranding",
+    status: "done",
+    priority: "low",
+    assignee: { initials: "AL", color: "bg-slate-500" },
+  },
+];
+
+/** Task change history — mirrors the eventual changelog API (field/from/to). */
+export interface ChangelogEntry {
+  id: string;
+  taskTitle: string;
+  field: "status" | "priority" | "created";
+  from?: string;
+  to?: string;
+  actor: string;
+  time: string;
+}
+
+export const taskChangelog: ChangelogEntry[] = [
+  {
+    id: "c1",
+    taskTitle: "Fix API timeout bug",
+    field: "status",
+    from: "In Progress",
+    to: "Done",
+    actor: "Sarah Chen",
+    time: "2h ago",
+  },
+  {
+    id: "c2",
+    taskTitle: "Implement WebSocket handshake protocol",
+    field: "status",
+    from: "Todo",
+    to: "In Progress",
+    actor: "Marcus J.",
+    time: "5h ago",
+  },
+  {
+    id: "c3",
+    taskTitle: "Audit color-contrast tokens for accessibility",
+    field: "priority",
+    from: "Low",
+    to: "Medium",
+    actor: "Alex Linden",
+    time: "1d ago",
+  },
+  {
+    id: "c4",
+    taskTitle: "Migrate legacy button components to atomic system",
+    field: "created",
+    actor: "Jordan Smith",
+    time: "1d ago",
+  },
+];
