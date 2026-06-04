@@ -1,13 +1,14 @@
 # TaskFlow — Management Suite
 
 A high-performance project management tool for planning, tracking, and shipping
-work. This repository currently contains the **frontend foundation**: the
-application shell, a reusable UI component library, the authentication screens,
-and the dashboard overview, all built against mock data ahead of the backend.
+work. The **frontend** (Next.js, in [`frontend/`](frontend/)) is feature-complete on mock
+data — app shell, UI library, dashboard, auth screens, and a Kanban board. The
+**backend** (NestJS, in [`backend/`](backend/)) is underway, starting with
+authentication.
 
 ## Tech Stack
 
-**Frontend (in this repo)**
+**Frontend (`frontend/`)**
 
 - [Next.js 16](https://nextjs.org) (App Router, Turbopack)
 - [React 19](https://react.dev)
@@ -15,11 +16,12 @@ and the dashboard overview, all built against mock data ahead of the backend.
 - [Tailwind CSS v4](https://tailwindcss.com) (CSS-based theme tokens — no `tailwind.config.js`)
 - [@dnd-kit](https://dndkit.com) — drag-and-drop for the Kanban board
 
-**Backend (planned)**
+**Backend (`backend/`)**
 
-- [NestJS](https://nestjs.com) + Node.js
-- MySQL via [TypeORM](https://typeorm.io)
-- JWT auth + bcrypt password hashing; Axios on the client
+- [NestJS 11](https://nestjs.com) (TypeScript, Node.js)
+- MySQL via [Prisma 6](https://www.prisma.io) (ORM)
+- JWT auth (passport-jwt) + bcrypt password hashing
+- Axios will wire the frontend to the API in Sprint 7
 
 ## Sprint Plan (10 sprints)
 
@@ -49,21 +51,21 @@ and the dashboard overview, all built against mock data ahead of the backend.
 
 ### Phase 2 — Backend (Sprints 4–6)
 
-**Sprint 4 — NestJS setup + Auth API (BE)**
+**Sprint 4 — NestJS setup + Auth API (BE)** ✅
 
-- [ ] Init NestJS, connect MySQL with TypeORM
-- [ ] User entity, sign-up / sign-in endpoints
-- [ ] JWT auth + bcrypt password hashing
-- [ ] Auth guard middleware
+- [x] Init NestJS, connect MySQL with Prisma
+- [x] `User` model, sign-up / sign-in endpoints (`POST /api/auth/register`, `/api/auth/login`)
+- [x] JWT auth + bcrypt password hashing
+- [x] Auth guard middleware (`JwtAuthGuard`, protecting `GET /api/auth/me`)
 
 **Sprint 5 — Projects + Tasks API (BE)**
 
-- [ ] Project entity + CRUD endpoints
-- [ ] Task entity + CRUD + PATCH status endpoint
+- [ ] Project model + CRUD endpoints
+- [ ] Task model + CRUD + PATCH status endpoint
 
 **Sprint 6 — Changelog + seeding API (BE)**
 
-- [ ] Changelog entity — auto-log on task update
+- [ ] Changelog model — auto-log on task update
 - [ ] `GET /api/changelogs` endpoint
 - [ ] `POST /api/seed` — database seed endpoint
 
@@ -99,63 +101,84 @@ and the dashboard overview, all built against mock data ahead of the backend.
 
 ## Current Status
 
-Sprints 1–3 are complete and verified (`npm run build` and `npm run lint` both pass) —
-the app shell, UI component library, dashboard, auth screens, and the Kanban board
-(with drag-and-drop, task modal, and changelog sidebar) are in place. All data on
-screen is mock data from [`lib/data.ts`](lib/data.ts); there is no backend wired up
-yet, so creating/editing tasks and projects is UI-only until the APIs land in Phase 2.
+**Frontend (Sprints 1–3)** — complete; `npm run build` and `npm run lint` pass. App
+shell, UI library, dashboard, auth screens, and the Kanban board (drag-and-drop, task
+modal, changelog sidebar) are in place, running on mock data from
+[`frontend/lib/data.ts`](frontend/lib/data.ts).
 
-**Next up — Sprint 4 (backend):** NestJS + MySQL + JWT auth. The repo will also be
-restructured into `frontend/` + `backend/` when the backend is added.
+**Backend (Sprint 4)** — the NestJS app in [`backend/`](backend/) is built and
+**verified end-to-end** against MySQL (via Prisma): `register` and `login` issue JWTs
+(bcrypt-hashed passwords), and `JwtAuthGuard` protects `GET /api/auth/me` (200 with a
+valid token, 401 without). `DATABASE_URL` is read from `backend/.env`; the schema is
+applied with `prisma db push`.
+
+**Next up — Sprint 5 (backend):** Project & Task CRUD endpoints.
 ## Getting Started
 
+### Frontend (`frontend/`)
+
 ```bash
+cd frontend
 npm install
-npm run dev
+npm run dev          # http://localhost:3000  (redirects to /dashboard)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) — the root path redirects to
-`/dashboard`.
+Other scripts: `npm run build`, `npm run start`, `npm run lint`.
 
-Other scripts:
+### Backend (`backend/`)
+
+Requires a local MySQL instance.
 
 ```bash
-npm run build   # production build
-npm run start   # serve the production build
-npm run lint    # eslint
+cd backend
+npm install                   # also generates the Prisma client (postinstall)
+cp .env.example .env          # set DATABASE_URL (+ a JWT secret)
+# create the database once, e.g.:  CREATE DATABASE taskflow;
+npm run db:push               # create tables from the Prisma schema
+npm run start:dev             # http://localhost:3001/api  (health: GET /api/health)
 ```
+
+Auth endpoints:
+- `POST /api/auth/register` — `{ email, name, password }` → `{ token, user }`
+- `POST /api/auth/login` — `{ email, password }` → `{ token, user }`
+- `GET /api/auth/me` — requires `Authorization: Bearer <token>`
 
 ## Project Structure
 
 ```
-app/
-├─ (app)/                 # Authenticated shell (sidebar + topbar)
-│  ├─ dashboard/          # Dashboard overview
-│  ├─ projects/ tasks/ team/ analytics/ settings/ support/
-│  └─ layout.tsx
-├─ (auth)/                # Login / signup (no shell, centered card)
-│  ├─ login/ signup/
-│  └─ layout.tsx
-├─ globals.css            # Tailwind v4 theme tokens (dark theme)
-├─ layout.tsx             # Root layout (fonts, metadata)
-└─ page.tsx               # Redirects → /dashboard
+frontend/                   # Next.js app
+├─ app/
+│  ├─ (app)/              # Authed shell: dashboard, projects, tasks, team, analytics, settings, support
+│  ├─ (auth)/             # Login / signup (centered card, no shell)
+│  ├─ globals.css         # Tailwind v4 theme tokens (dark theme)
+│  ├─ layout.tsx          # Root layout (fonts, metadata)
+│  └─ page.tsx            # Redirects → /dashboard
+├─ components/
+│  ├─ ui/                 # Button, Input, Select, Badge, Modal, Card, Avatar, ProgressBar
+│  ├─ layout/             # Sidebar, Topbar, FAB, PlaceholderPage
+│  ├─ dashboard/          # ProjectCard, DeadlineItem, ActivityItem, WorkloadChart
+│  ├─ board/              # Kanban: KanbanBoard, KanbanColumn, TaskCard, TaskModal, ChangelogSidebar
+│  ├─ auth/               # AuthForm (shared by login + signup)
+│  ├─ project/            # NewProjectModal (+ context provider)
+│  └─ icons.tsx           # Inline SVG icon set
+└─ lib/
+   ├─ data.ts             # Mock data (shaped close to the future API)
+   └─ utils.ts            # cn() classname helper
 
-components/
-├─ ui/                    # Button, Input, Select, Badge, Modal, Card, Avatar, ProgressBar
-├─ layout/                # Sidebar, Topbar, FAB, PlaceholderPage
-├─ dashboard/             # ProjectCard, DeadlineItem, ActivityItem, WorkloadChart
-├─ board/                 # Kanban: KanbanBoard, KanbanColumn, TaskCard, TaskModal, ChangelogSidebar
-├─ auth/                  # AuthForm (shared by login + signup)
-├─ project/               # NewProjectModal (+ context provider)
-└─ icons.tsx              # Inline SVG icon set
-
-lib/
-├─ data.ts                # Mock data (shaped close to the future API)
-└─ utils.ts               # cn() classname helper
+backend/                    # NestJS API (its own app — run separately)
+├─ prisma/
+│  └─ schema.prisma       # data model (User) + MySQL datasource
+├─ src/
+│  ├─ auth/               # register/login, JWT strategy + JwtAuthGuard, DTOs
+│  ├─ users/              # UsersService (Prisma)
+│  ├─ prisma/             # PrismaService + global PrismaModule
+│  ├─ app.module.ts       # ConfigModule + Prisma + Auth wiring
+│  └─ main.ts             # bootstrap: /api prefix, CORS, ValidationPipe
+└─ .env.example           # DATABASE_URL + JWT config template
 ```
 
 The UI is a fixed dark theme. Brand and surface colors are defined as Tailwind v4
-`@theme` tokens in [`app/globals.css`](app/globals.css) (e.g. `--color-brand`,
+`@theme` tokens in [`frontend/app/globals.css`](frontend/app/globals.css) (e.g. `--color-brand`,
 `--color-surface`), which generate the `bg-*`, `text-*`, and `border-*` utilities
 used throughout.
 

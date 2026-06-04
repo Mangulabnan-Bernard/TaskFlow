@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 
@@ -28,12 +29,15 @@ const COPY = {
 
 export function AuthForm({ mode }: { mode: AuthMode }) {
   const copy = COPY[mode];
+  const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    // Auth backend lands on Day 4 (NestJS + JWT). This is the UI shell only.
     setSubmitting(true);
+    // No real authentication yet — the API is wired in Sprint 7. For now,
+    // submitting just takes you into the app.
+    router.push("/dashboard");
   }
 
   return (
