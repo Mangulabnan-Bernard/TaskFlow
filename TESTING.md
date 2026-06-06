@@ -1,273 +1,604 @@
-# TaskFlow — Backend API Testing Guide
+# TaskFlow Backend Testing Guide
 
-A step-by-step way to check that the backend works, using **Postman** (or any REST
-client — Insomnia, Thunder Client, `curl`, etc.).
+This guide will help you test the TaskFlow backend using Postman.
 
-> **Note:** The frontend is not connected to the backend yet (that's Sprint 7), so for
-> now you test the **API directly**. The Kanban board in the UI still uses mock data and
-> will not change when you call these endpoints.
+> Note: As of Sprint 7 the frontend is wired to this API. This guide covers testing the API directly (Postman); to test through the UI, run the frontend (`cd frontend && npm run dev`) and sign in with the seeded demo account after calling `POST /seed`.
 
 ---
 
-## 1. Before you start
+# Setup
 
-You need:
+## Requirements
 
-- **Node.js** installed.
-- A running **MySQL** server, with a database created (e.g. `CREATE DATABASE taskflow;`).
-- A `backend/.env` file with `DATABASE_URL` and a `JWT_SECRET` (copy `backend/.env.example`).
+Make sure you have:
 
-Then, from the repo root:
+* Node.js installed
+* MySQL running
+* A TaskFlow database created
+* A configured `.env` file
 
-```bash
-cd backend
-npm install        # installs deps and generates the Prisma client
-npm run db:push    # creates the tables from the Prisma schema
+Example:
+
+```env
+DATABASE_URL="mysql://user:password@localhost:3306/taskflow"
+JWT_SECRET="your-secret-key"
 ```
 
-## 2. Start the server
+Install dependencies and create database tables:
 
 ```bash
 cd backend
+npm install
+npm run db:push
+```
+
+---
+
+# Start the Backend
+
+```bash
 npm run start:dev
 ```
 
-- Default address: **`http://localhost:3001/api`**
-- Quick check it's alive: open `http://localhost:3001/api/health` in a browser → you
-  should see `{"status":"ok","service":"taskflow-api"}`.
+Default URL:
 
-> **Port already in use?** If you see `EADDRINUSE: address already in use :::3001`,
-> another app is on port 3001. Run on a different port instead:
->
-> ```powershell
-> $env:PORT = 3005    # PowerShell
-> npm run start:dev
-> ```
->
-> Then replace `3001` with `3005` in every URL below.
+```text
+http://localhost:3001/api
+```
 
-## 3. The token rule (read this first)
+Check if it is running:
 
-Most routes are **protected** — they need a login token.
+```text
+http://localhost:3001/api/health
+```
 
-1. You get a `token` from **register** or **login** (a long text string).
-2. In Postman, open the **Authorization** tab → set **Type: Bearer Token** → paste the
-   token in the box (paste the token only — Postman adds the word `Bearer` for you).
-3. Only `auth/register`, `auth/login`, `health`, and `seed` work **without** a token.
+Expected result:
 
-> **Time-saver:** In Postman you can save the token once as a variable (e.g. `{{token}}`)
-> and reuse it on every request, instead of pasting it each time.
+```json
+{
+  "status": "ok",
+  "service": "taskflow-api"
+}
+```
 
-**JSON bodies:** when a step has a body, use **Body → raw → JSON**.
+If port 3001 is already in use:
 
----
+```powershell
+$env:PORT=3005
+npm run start:dev
+```
 
-## Sprint 4 — Auth (accounts & login)
-
-Endpoints: `POST /auth/register`, `POST /auth/login`, `GET /auth/me`.
-
-### Step 1 — Make a new account
-- **POST** `http://localhost:3001/api/auth/register`
-- Body (raw → JSON):
-  ```json
-  { "name": "Test User", "email": "test@taskflow.dev", "password": "secret123" }
-  ```
-- ✅ Returns a `token` and your `user`. (Password must be **6+ characters**; email must
-  be a valid email.)
-
-### Step 2 — Log in
-- **POST** `http://localhost:3001/api/auth/login`
-- Body (raw → JSON):
-  ```json
-  { "email": "test@taskflow.dev", "password": "secret123" }
-  ```
-- ✅ Returns a `token`. **Copy it** for the next step.
-
-### Step 3 — See who you are (protected)
-- **GET** `http://localhost:3001/api/auth/me`
-- Authorization: **Bearer Token** (paste your token).
-- ✅ Returns your `id`, `email`, and `name`.
-
-### Make sure the security works (these should FAIL on purpose)
-
-| Try this | Expected result | What it proves |
-| --- | --- | --- |
-| Step 3 **without** a token | `401 Unauthorized` | Protected routes need a token |
-| Step 1 again with the **same email** | `409 Conflict` | No duplicate accounts |
-| Step 2 with a **wrong password** | `401 Unauthorized` | The password is really checked |
-| Step 1 with `"password": "123"` | `400 Bad Request` | Validation works (too short) |
+Then use port 3005 instead.
 
 ---
 
-## Sprint 5 — Projects & Tasks (CRUD)
+# Authentication
 
-Everything here needs the **Bearer token** from Sprint 4 (Step 2). You only ever see
-**your own** projects and tasks.
+Most endpoints require a login token.
 
-> Tip: instead of registering, you can run **`POST /api/seed`** (see Sprint 6) to get a
-> ready-made account `demo@taskflow.dev` / `password123` with sample data.
+Workflow:
 
-### Step 1 — Create a project
-- **POST** `http://localhost:3001/api/projects`
-- Body (raw → JSON):
-  ```json
-  { "name": "My First Project", "description": "Just testing." }
-  ```
-- ✅ Returns the new project. **Copy its `id`.** (`description` is optional.)
+```text
+Register
+   ↓
+Login
+   ↓
+Receive JWT Token
+   ↓
+Use Token on Protected Endpoints
+```
 
-### Step 2 — List your projects
-- **GET** `http://localhost:3001/api/projects`
-- ✅ Returns an array of your projects, each with a task count.
+In Postman:
 
-### Step 3 — Get one project (with its tasks)
-- **GET** `http://localhost:3001/api/projects/PROJECT_ID`
-- ✅ Returns that project including its `tasks` list.
+1. Open Authorization tab
+2. Select Bearer Token
+3. Paste the token
 
-### Step 4 — Update a project
-- **PATCH** `http://localhost:3001/api/projects/PROJECT_ID`
-- Body (raw → JSON):
-  ```json
-  { "name": "Renamed Project" }
-  ```
-- ✅ Returns the updated project.
+Public endpoints:
 
-### Step 5 — Create a task in that project
-- **POST** `http://localhost:3001/api/tasks`
-- Body (raw → JSON):
-  ```json
-  { "projectId": "PROJECT_ID", "title": "My first task" }
-  ```
-- ✅ Returns the new task (status defaults to `TODO`). **Copy its `id`.**
-  (Optional fields: `description`, and `status` = `TODO` / `IN_PROGRESS` / `DONE`.)
+```text
+POST /auth/register
+POST /auth/login
+GET  /health
+POST /seed
+```
 
-### Step 6 — List the project's tasks
-- **GET** `http://localhost:3001/api/projects/PROJECT_ID/tasks`
-- ✅ Returns the tasks in that project.
-
-### Step 7 — Update a task
-- **PATCH** `http://localhost:3001/api/tasks/TASK_ID`
-- Body (raw → JSON):
-  ```json
-  { "title": "Updated title", "status": "IN_PROGRESS" }
-  ```
-- ✅ Returns the updated task.
-
-### Step 8 — Change only a task's status
-- **PATCH** `http://localhost:3001/api/tasks/TASK_ID/status`
-- Body (raw → JSON):
-  ```json
-  { "status": "DONE" }
-  ```
-- ✅ Returns the task with the new status. (This is the endpoint the board's
-  drag-and-drop will use.)
-
-### Step 9 — Delete a task, then a project
-- **DELETE** `http://localhost:3001/api/tasks/TASK_ID` → ✅ `{ "id": "..." }`
-- **DELETE** `http://localhost:3001/api/projects/PROJECT_ID` → ✅ `{ "id": "..." }`
-  (Deleting a project also deletes its tasks.)
-
-### Ownership check (should FAIL on purpose)
-- Use a project/task `id` that isn't yours (or a made-up one) → `404 Not Found`
-  ("Project not found" / "Task not found"). This proves you can only touch your own data.
+Everything else requires authentication.
 
 ---
 
-## Sprint 6 — Changelog & Seed
+# Sprint 4 – Authentication
 
-Two features: a **changelog** that records task changes automatically, and a **seed**
-endpoint that loads demo data.
+## Create Account
 
-### Step 1 — Add demo data
-- **POST** `http://localhost:3001/api/seed` (no token, no body)
-- ✅ Returns the demo login and counts:
-  ```json
-  { "message": "Database seeded",
-    "credentials": { "email": "demo@taskflow.dev", "password": "password123" },
-    "projects": 2, "tasks": 7 }
-  ```
+Request:
 
-### Step 2 — Log in as the demo user
-- **POST** `http://localhost:3001/api/auth/login`
-- Body: `{ "email": "demo@taskflow.dev", "password": "password123" }`
-- ✅ **Copy the `token`.**
+```http
+POST /auth/register
+```
 
-### Step 3 — See your projects
-- **GET** `http://localhost:3001/api/projects` (Bearer token)
-- ✅ Two projects. **Copy one project's `id`** — use the `id` field, **not** `ownerId`.
+Body:
 
-### Step 4 — See that project's tasks
-- **GET** `http://localhost:3001/api/projects/PROJECT_ID/tasks` (Bearer token)
-- ✅ Find a task with `"status": "TODO"` and **copy its `id`**.
+```json
+{
+  "name": "Test User",
+  "email": "test@taskflow.dev",
+  "password": "secret123"
+}
+```
 
-### Step 5 — Look at the changelog (before)
-- **GET** `http://localhost:3001/api/changelogs` (Bearer token)
-- ✅ A list of past task changes, newest first. **Note how many items there are.**
+Expected Result:
 
-### Step 6 — Change a task's status
-- **PATCH** `http://localhost:3001/api/tasks/TASK_ID/status` (Bearer token)
-- Body: `{ "status": "IN_PROGRESS" }`
-- ✅ The task status changes.
-
-### Step 7 — Look at the changelog again (after)
-- **GET** `http://localhost:3001/api/changelogs` (Bearer token)
-- ✅ The list now has **one more item**, and the **top item** is your change
-  (`field: "status"`, `from: "TODO"`, `to: "IN_PROGRESS"`). This proves the app logged
-  the change **by itself**.
-
-> ⚠️ **`POST /api/seed` wipes and recreates the demo data with brand-new IDs every time
-> you call it.** If you re-seed, your old project/task IDs stop working — just run Step 3
-> again to get the new IDs. Don't re-seed in the middle of a flow.
+* User created
+* JWT token returned
 
 ---
 
-## Endpoint reference
+## Login
 
-Base URL: `http://localhost:3001/api` · 🔒 = needs `Authorization: Bearer <token>`
+Request:
 
-| Method | Path | Auth | Body |
-| --- | --- | --- | --- |
-| GET | `/health` | — | — |
-| POST | `/auth/register` | — | `{ name, email, password }` |
-| POST | `/auth/login` | — | `{ email, password }` |
-| GET | `/auth/me` | 🔒 | — |
-| GET | `/projects` | 🔒 | — |
-| POST | `/projects` | 🔒 | `{ name, description? }` |
-| GET | `/projects/:id` | 🔒 | — |
-| PATCH | `/projects/:id` | 🔒 | `{ name?, description? }` |
-| DELETE | `/projects/:id` | 🔒 | — |
-| GET | `/projects/:id/tasks` | 🔒 | — |
-| POST | `/tasks` | 🔒 | `{ projectId, title, description?, status? }` |
-| PATCH | `/tasks/:id` | 🔒 | `{ title?, description?, status? }` |
-| PATCH | `/tasks/:id/status` | 🔒 | `{ status }` |
-| DELETE | `/tasks/:id` | 🔒 | — |
-| GET | `/changelogs` | 🔒 | — |
-| POST | `/seed` | — | — |
+```http
+POST /auth/login
+```
 
-`status` is one of: `TODO`, `IN_PROGRESS`, `DONE`.
+Body:
+
+```json
+{
+  "email": "test@taskflow.dev",
+  "password": "secret123"
+}
+```
+
+Expected Result:
+
+* JWT token returned
+
+Save the token for later requests.
 
 ---
 
-## Common problems
+## Get Current User
 
-| You see | Why | Fix |
-| --- | --- | --- |
-| `404 "Project not found"` | You used the wrong ID (often `ownerId` instead of `id`), or you re-seeded and the ID is stale | Re-run `GET /projects` and copy the `id` field |
-| `401 Unauthorized` | No token, wrong token, or token in the wrong place | Add the token in **Authorization → Bearer Token** |
-| `400 Bad Request` | Body fails validation (e.g. password < 6, missing `title`, invalid email) | Check the field rules in the reference above |
-| `409 Conflict` | Registering an email that already exists | Use a different email, or just log in |
-| `EADDRINUSE :::3001` | Port 3001 is taken | Start with `$env:PORT=3005` and use that port |
-| Empty `[]` from `/projects` | New account with no data yet | Create a project, or run `POST /seed` |
+Request:
+
+```http
+GET /auth/me
+```
+
+Authorization:
+
+```text
+Bearer Token
+```
+
+Expected Result:
+
+```json
+{
+  "id": "...",
+  "name": "Test User",
+  "email": "test@taskflow.dev"
+}
+```
 
 ---
 
-## Ideas to add later
+## Validation Checks
 
-- **Save a Postman Collection** (export the requests above) and commit it so other devs
-  don't rebuild them by hand.
-- **Automated tests** — the project already has Jest + supertest set up (`npm run test`,
-  `npm run test:e2e`); adding `*.spec.ts` files would let CI check these flows
-  automatically instead of clicking through Postman.
-- **Seed safety** — `POST /seed` is open so you can bootstrap a fresh DB; it is blocked
-  when `NODE_ENV=production` unless `ALLOW_SEED=true`. Keep that in mind before deploying.
-- **Frontend testing** — once Sprint 7 wires the UI to the API, add a short "log in
-  through the browser and watch the board load real data" section here.
+These should fail:
+
+| Test                          | Expected         |
+| ----------------------------- | ---------------- |
+| No token on `/auth/me`        | 401 Unauthorized |
+| Duplicate email               | 409 Conflict     |
+| Wrong password                | 401 Unauthorized |
+| Password shorter than 6 chars | 400 Bad Request  |
+
+---
+
+# Sprint 5 – Projects and Tasks
+
+All endpoints below require authentication.
+
+---
+
+## Create Project
+
+Request:
+
+```http
+POST /projects
+```
+
+Body:
+
+```json
+{
+  "name": "My First Project",
+  "description": "Testing project"
+}
+```
+
+Expected Result:
+
+* Project created
+* Save the project ID
+
+---
+
+## Get Projects
+
+Request:
+
+```http
+GET /projects
+```
+
+Expected Result:
+
+* List of your projects
+
+---
+
+## Get Single Project
+
+Request:
+
+```http
+GET /projects/{PROJECT_ID}
+```
+
+Expected Result:
+
+* Project details
+* Related tasks
+
+---
+
+## Update Project
+
+Request:
+
+```http
+PATCH /projects/{PROJECT_ID}
+```
+
+Body:
+
+```json
+{
+  "name": "Updated Project Name"
+}
+```
+
+Expected Result:
+
+* Project updated
+
+---
+
+## Create Task
+
+Request:
+
+```http
+POST /tasks
+```
+
+Body:
+
+```json
+{
+  "projectId": "PROJECT_ID",
+  "title": "My First Task"
+}
+```
+
+Expected Result:
+
+* Task created
+* Status defaults to TODO
+
+---
+
+## Get Project Tasks
+
+Request:
+
+```http
+GET /projects/{PROJECT_ID}/tasks
+```
+
+Expected Result:
+
+* All tasks in the project
+
+---
+
+## Update Task
+
+Request:
+
+```http
+PATCH /tasks/{TASK_ID}
+```
+
+Body:
+
+```json
+{
+  "title": "Updated Task",
+  "status": "IN_PROGRESS"
+}
+```
+
+Expected Result:
+
+* Task updated
+
+---
+
+## Update Task Status
+
+Request:
+
+```http
+PATCH /tasks/{TASK_ID}/status
+```
+
+Body:
+
+```json
+{
+  "status": "DONE"
+}
+```
+
+Expected Result:
+
+* Status updated
+
+---
+
+## Delete Task
+
+Request:
+
+```http
+DELETE /tasks/{TASK_ID}
+```
+
+Expected Result:
+
+```json
+{
+  "id": "..."
+}
+```
+
+---
+
+## Delete Project
+
+Request:
+
+```http
+DELETE /projects/{PROJECT_ID}
+```
+
+Expected Result:
+
+```json
+{
+  "id": "..."
+}
+```
+
+Deleting a project also deletes all associated tasks.
+
+---
+
+# Sprint 6 – Changelog and Seed Data
+
+Sprint 6 introduces:
+
+1. Automatic task history tracking
+2. Demo data generation
+
+---
+
+## Seed Database
+
+Request:
+
+```http
+POST /seed
+```
+
+Expected Result:
+
+```json
+{
+  "message": "Database seeded",
+  "credentials": {
+    "email": "demo@taskflow.dev",
+    "password": "password123"
+  }
+}
+```
+
+---
+
+## Login as Demo User
+
+Request:
+
+```http
+POST /auth/login
+```
+
+Body:
+
+```json
+{
+  "email": "demo@taskflow.dev",
+  "password": "password123"
+}
+```
+
+Save the returned token.
+
+---
+
+## View Projects
+
+Request:
+
+```http
+GET /projects
+```
+
+Expected Result:
+
+* Two demo projects
+
+Save one project ID.
+
+---
+
+## View Tasks
+
+Request:
+
+```http
+GET /projects/{PROJECT_ID}/tasks
+```
+
+Expected Result:
+
+* Demo tasks
+
+Save a task ID with status TODO.
+
+---
+
+## View Changelog
+
+Request:
+
+```http
+GET /changelogs
+```
+
+Expected Result:
+
+* List of task history entries
+
+---
+
+## Change Task Status
+
+Request:
+
+```http
+PATCH /tasks/{TASK_ID}/status
+```
+
+Body:
+
+```json
+{
+  "status": "IN_PROGRESS"
+}
+```
+
+Expected Result:
+
+* Status updated successfully
+
+---
+
+## Verify Changelog
+
+Request:
+
+```http
+GET /changelogs
+```
+
+Expected Result:
+
+* New entry appears at the top
+* Shows the status change
+
+Example:
+
+```text
+Task Status Changed
+TODO → IN_PROGRESS
+```
+
+This confirms automatic logging is working.
+
+---
+
+# Available Endpoints
+
+| Method | Endpoint            |
+| ------ | ------------------- |
+| GET    | /health             |
+| POST   | /auth/register      |
+| POST   | /auth/login         |
+| GET    | /auth/me            |
+| GET    | /projects           |
+| POST   | /projects           |
+| GET    | /projects/:id       |
+| PATCH  | /projects/:id       |
+| DELETE | /projects/:id       |
+| GET    | /projects/:id/tasks |
+| POST   | /tasks              |
+| PATCH  | /tasks/:id          |
+| PATCH  | /tasks/:id/status   |
+| DELETE | /tasks/:id          |
+| GET    | /changelogs         |
+| POST   | /seed               |
+
+Task statuses:
+
+```text
+TODO
+IN_PROGRESS
+DONE
+```
+
+---
+
+# Common Errors
+
+| Error            | Cause                    |
+| ---------------- | ------------------------ |
+| 401 Unauthorized | Missing or invalid token |
+| 404 Not Found    | Invalid project/task ID  |
+| 400 Bad Request  | Validation error         |
+| 409 Conflict     | Email already exists     |
+| EADDRINUSE       | Port already being used  |
+
+---
+
+# Sprint 6 Success Checklist
+
+Sprint 6 is working if:
+
+✅ Backend starts successfully
+
+✅ Seed endpoint creates demo data
+
+✅ Login returns a JWT token
+
+✅ Projects and tasks can be retrieved
+
+✅ Task status updates correctly
+
+✅ Changelog automatically records task changes
