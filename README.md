@@ -58,10 +58,10 @@ authentication.
 - [x] JWT auth + bcrypt password hashing
 - [x] Auth guard middleware (`JwtAuthGuard`, protecting `GET /api/auth/me`)
 
-**Sprint 5 — Projects + Tasks API (BE)**
+**Sprint 5 — Projects + Tasks API (BE)** ✅
 
-- [ ] Project model + CRUD endpoints
-- [ ] Task model + CRUD + PATCH status endpoint
+- [x] Project model + CRUD endpoints (owner-scoped, JWT-guarded)
+- [x] Task model + CRUD + PATCH status endpoint
 
 **Sprint 6 — Changelog + seeding API (BE)**
 
@@ -106,13 +106,14 @@ shell, UI library, dashboard, auth screens, and the Kanban board (drag-and-drop,
 modal, changelog sidebar) are in place, running on mock data from
 [`frontend/lib/data.ts`](frontend/lib/data.ts).
 
-**Backend (Sprint 4)** — the NestJS app in [`backend/`](backend/) is built and
-**verified end-to-end** against MySQL (via Prisma): `register` and `login` issue JWTs
-(bcrypt-hashed passwords), and `JwtAuthGuard` protects `GET /api/auth/me` (200 with a
-valid token, 401 without). `DATABASE_URL` is read from `backend/.env`; the schema is
-applied with `prisma db push`.
+**Backend (Sprints 4–5)** — the NestJS app in [`backend/`](backend/) is built and
+**verified end-to-end** against MySQL (via Prisma). Sprint 4: `register`/`login` issue
+JWTs (bcrypt-hashed passwords), `JwtAuthGuard` protects `GET /api/auth/me`. Sprint 5:
+owner-scoped **Project** and **Task** CRUD plus `PATCH /api/tasks/:id/status` — all
+JWT-guarded (401 without a token). `DATABASE_URL` comes from `backend/.env`; the schema
+is applied with `prisma db push`.
 
-**Next up — Sprint 5 (backend):** Project & Task CRUD endpoints.
+**Next up — Sprint 6 (backend):** changelog (auto-log task updates) + DB seed endpoint.
 ## Getting Started
 
 ### Frontend (`frontend/`)
@@ -138,10 +139,10 @@ npm run db:push               # create tables from the Prisma schema
 npm run start:dev             # http://localhost:3001/api  (health: GET /api/health)
 ```
 
-Auth endpoints:
-- `POST /api/auth/register` — `{ email, name, password }` → `{ token, user }`
-- `POST /api/auth/login` — `{ email, password }` → `{ token, user }`
-- `GET /api/auth/me` — requires `Authorization: Bearer <token>`
+API endpoints (all under `/api`; everything except `auth/*` needs `Authorization: Bearer <token>`):
+- `POST /auth/register` · `POST /auth/login` → `{ token, user }` · `GET /auth/me`
+- `GET` / `POST /projects` · `GET` / `PATCH` / `DELETE /projects/:id`
+- `GET /projects/:id/tasks` · `POST /tasks` · `PATCH` / `DELETE /tasks/:id` · `PATCH /tasks/:id/status`
 
 ## Project Structure
 
@@ -167,12 +168,15 @@ frontend/                   # Next.js app
 
 backend/                    # NestJS API (its own app — run separately)
 ├─ prisma/
-│  └─ schema.prisma       # data model (User) + MySQL datasource
+│  └─ schema.prisma       # data models (User, Project, Task) + MySQL datasource
 ├─ src/
 │  ├─ auth/               # register/login, JWT strategy + JwtAuthGuard, DTOs
 │  ├─ users/              # UsersService (Prisma)
+│  ├─ projects/           # Projects CRUD (service, controller, DTOs)
+│  ├─ tasks/              # Tasks CRUD + PATCH status (service, controller, DTOs)
+│  ├─ common/             # CurrentUser decorator
 │  ├─ prisma/             # PrismaService + global PrismaModule
-│  ├─ app.module.ts       # ConfigModule + Prisma + Auth wiring
+│  ├─ app.module.ts       # wires Prisma + Auth + Projects + Tasks
 │  └─ main.ts             # bootstrap: /api prefix, CORS, ValidationPipe
 └─ .env.example           # DATABASE_URL + JWT config template
 ```
