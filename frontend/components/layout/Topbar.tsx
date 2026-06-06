@@ -1,8 +1,22 @@
-import { currentUser } from "@/lib/data";
-import { SearchIcon, BellIcon, HelpIcon } from "@/components/icons";
+"use client";
+
+import { SearchIcon, BellIcon, HelpIcon, LogoutIcon } from "@/components/icons";
 import { Avatar } from "@/components/ui/Avatar";
+import { useAuth } from "@/lib/auth";
+
+/** "Demo User" -> "DU", "Alex" -> "A". */
+function initialsOf(name: string): string {
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
 
 export function Topbar() {
+  const { user, logout } = useAuth();
+
   return (
     <header className="flex h-16 shrink-0 items-center gap-4 border-b border-line bg-canvas/80 px-6 backdrop-blur">
       {/* Search */}
@@ -38,14 +52,23 @@ export function Topbar() {
         <div className="flex items-center gap-3">
           <div className="text-right leading-tight">
             <p className="text-sm font-semibold text-white">
-              {currentUser.name}
+              {user?.name ?? "—"}
             </p>
-            <p className="label-eyebrow text-slate-500">{currentUser.role}</p>
+            <p className="label-eyebrow text-slate-500">{user?.email ?? ""}</p>
           </div>
           <Avatar
-            initials={currentUser.initials}
+            initials={user ? initialsOf(user.name) : "?"}
             color="bg-gradient-to-br from-brand to-brand-dark"
           />
+          <button
+            type="button"
+            onClick={logout}
+            aria-label="Sign out"
+            title="Sign out"
+            className="focus-ring rounded-lg p-2 text-slate-400 transition-colors hover:bg-elevated hover:text-white"
+          >
+            <LogoutIcon className="size-5" />
+          </button>
         </div>
       </div>
     </header>

@@ -39,6 +39,15 @@ export class TasksService {
     });
   }
 
+  /** Every task across the user's projects, each with its project name. */
+  findAllForOwner(ownerId: string) {
+    return this.prisma.task.findMany({
+      where: { project: { ownerId } },
+      orderBy: { createdAt: 'asc' },
+      include: { project: { select: { id: true, name: true } } },
+    });
+  }
+
   async update(ownerId: string, id: string, dto: UpdateTaskDto) {
     const before = await this.ensureTaskOwned(ownerId, id);
     const after = await this.prisma.task.update({ where: { id }, data: dto });

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { useAuth } from "@/lib/auth";
+import { apiErrorMessage } from "@/lib/api";
 
 export type AuthMode = "login" | "signup";
 
@@ -30,14 +32,38 @@ const COPY = {
 export function AuthForm({ mode }: { mode: AuthMode }) {
   const copy = COPY[mode];
   const router = useRouter();
+  const { login, register } = useAuth();
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setError(null);
     setSubmitting(true);
-    // No real authentication yet — the API is wired in Sprint 7. For now,
-    // submitting just takes you into the app.
-    router.push("/dashboard");
+
+    const form = new FormData(e.currentTarget);
+    const email = String(form.get("email") ?? "");
+    const password = String(form.get("password") ?? "");
+    const name = String(form.get("name") ?? "");
+
+    try {
+      if (mode === "signup") {
+        await register(name, email, password);
+      } else {
+        await login(email, password);
+      }
+      router.push("/dashboard");
+    } catch (err) {
+      setError(
+        apiErrorMessage(
+          err,
+          mode === "signup"
+            ? "Could not create your account. Please try again."
+            : "Invalid email or password.",
+        ),
+      );
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -50,6 +76,15 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {error ? (
+          <p
+            role="alert"
+            className="rounded-lg border border-danger/40 bg-danger/10 px-3.5 py-2.5 text-sm text-danger"
+          >
+            {error}
+          </p>
+        ) : null}
+
         {mode === "signup" ? (
           <Input
             label="Full name"
@@ -90,6 +125,8 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
             type="password"
             autoComplete={mode === "signup" ? "new-password" : "current-password"}
             placeholder="••••••••"
+            minLength={mode === "signup" ? 6 : undefined}
+            hint={mode === "signup" ? "At least 6 characters." : undefined}
             required
           />
         </div>

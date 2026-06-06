@@ -25,6 +25,12 @@ export class TasksController {
     return this.tasks.create(user.id, dto);
   }
 
+  // All of the user's tasks across projects — used by the Kanban board.
+  @Get('tasks')
+  findAll(@CurrentUser() user: AuthUser) {
+    return this.tasks.findAllForOwner(user.id);
+  }
+
   @Get('projects/:projectId/tasks')
   findByProject(
     @CurrentUser() user: AuthUser,

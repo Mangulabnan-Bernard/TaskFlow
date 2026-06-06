@@ -15,13 +15,13 @@ tasks, and an auto-logged changelog. Next up: wiring the two together.
 - [TypeScript](https://www.typescriptlang.org)
 - [Tailwind CSS v4](https://tailwindcss.com) (CSS-based theme tokens — no `tailwind.config.js`)
 - [@dnd-kit](https://dndkit.com) — drag-and-drop for the Kanban board
+- [Axios](https://axios-http.com) — API client (JWT attached via interceptor)
 
 **Backend (`backend/`)**
 
 - [NestJS 11](https://nestjs.com) (TypeScript, Node.js)
 - MySQL via [Prisma 6](https://www.prisma.io) (ORM)
 - JWT auth (passport-jwt) + bcrypt password hashing
-- Axios will wire the frontend to the API in Sprint 7
 
 ## Sprint Plan (10 sprints)
 
@@ -71,11 +71,12 @@ tasks, and an auto-logged changelog. Next up: wiring the two together.
 
 ### Phase 3 — Integration (Sprints 7–8)
 
-**Sprint 7 — Wire FE to BE (Both)**
+**Sprint 7 — Wire FE to BE (Both)** ✅
 
-- [ ] Axios instance; wire login / signup to Auth API, store JWT
-- [ ] Replace dummy project / task data with real API calls
-- [ ] Protected routes — redirect to login if no token
+- [x] Axios instance; wire login / signup to Auth API, store JWT
+- [x] Replace dummy project / task data with real API calls (dashboard projects, Kanban board)
+- [x] Protected routes — redirect to login if no token
+- [x] Create project / task forms persist via the API; Topbar shows the user + logout
 
 **Sprint 8 — Interactivity + real-time (Both)**
 
@@ -103,7 +104,8 @@ tasks, and an auto-logged changelog. Next up: wiring the two together.
 
 **Frontend (Sprints 1–3)** — complete; `npm run build` and `npm run lint` pass. App
 shell, UI library, dashboard, auth screens, and the Kanban board (drag-and-drop, task
-modal, changelog sidebar) are in place, running on mock data from
+modal, changelog sidebar) are in place. Dashboard widgets without an API source
+(deadlines, activity, workload) still use mock data from
 [`frontend/lib/data.ts`](frontend/lib/data.ts).
 
 **Backend (Sprints 4–6)** — the NestJS app in [`backend/`](backend/) is built and
@@ -116,9 +118,15 @@ first); `POST /api/seed` populates an idempotent demo dataset (user, projects, t
 changelog) and returns the demo login. `DATABASE_URL` comes from `backend/.env`; the
 schema is applied with `prisma db push`.
 
-**Next up — Sprint 7 (integration):** wire the frontend to the API with Axios — login /
-signup store the JWT, dummy project / task data is replaced with real calls, and routes
-redirect to login without a token.
+**Integration (Sprint 7)** — the frontend now talks to the API via Axios
+([`frontend/lib/api.ts`](frontend/lib/api.ts)). Login / signup hit the Auth API and store
+the JWT (attached to every request by an interceptor); the `(app)` shell is guarded and
+redirects to `/login` without a token. The dashboard's Active Projects and the Kanban
+board load real data, and the New Project / New Task forms persist through the API. The
+API base URL comes from `NEXT_PUBLIC_API_URL` (see [`frontend/.env.example`](frontend/.env.example)).
+
+**Next up — Sprint 8 (interactivity):** drag-and-drop triggers a real status PATCH, the
+changelog sidebar fetches real data, and status changes reflect across the UI.
 ## Getting Started
 
 ### Frontend (`frontend/`)
@@ -126,10 +134,16 @@ redirect to login without a token.
 ```bash
 cd frontend
 npm install
-npm run dev          # http://localhost:3000  (redirects to /dashboard)
+cp .env.example .env.local   # set NEXT_PUBLIC_API_URL (defaults to http://localhost:3001/api)
+npm run dev                  # http://localhost:3000  (redirects to /login)
 ```
 
 Other scripts: `npm run build`, `npm run start`, `npm run lint`.
+
+Start the backend first (below), then sign in with the seeded demo account
+(`demo@taskflow.dev` / `password123`) after calling `POST /api/seed` — or create your own
+account from the signup page. The frontend dev server must be allowed by the backend's
+CORS origin (`FRONTEND_URL`, default `http://localhost:3000`).
 
 ### Backend (`backend/`)
 
@@ -162,21 +176,24 @@ For a step-by-step way to verify the API in Postman, see [`TESTING.md`](TESTING.
 ```
 frontend/                   # Next.js app
 ├─ app/
-│  ├─ (app)/              # Authed shell: dashboard, projects, tasks, team, analytics, settings, support
+│  ├─ (app)/              # Authed shell (AuthGuard): dashboard, projects, tasks, team, analytics, settings, support
 │  ├─ (auth)/             # Login / signup (centered card, no shell)
 │  ├─ globals.css         # Tailwind v4 theme tokens (dark theme)
-│  ├─ layout.tsx          # Root layout (fonts, metadata)
-│  └─ page.tsx            # Redirects → /dashboard
+│  ├─ layout.tsx          # Root layout (fonts, metadata, AuthProvider)
+│  └─ page.tsx            # Redirects → /login
 ├─ components/
 │  ├─ ui/                 # Button, Input, Select, Badge, Modal, Card, Avatar, ProgressBar
-│  ├─ layout/             # Sidebar, Topbar, FAB, PlaceholderPage
-│  ├─ dashboard/          # ProjectCard, DeadlineItem, ActivityItem, WorkloadChart
+│  ├─ layout/             # Sidebar, Topbar (user + logout), FAB, PlaceholderPage
+│  ├─ dashboard/          # ActiveProjects (live), ProjectCard, DeadlineItem, ActivityItem, WorkloadChart
 │  ├─ board/              # Kanban: KanbanBoard, KanbanColumn, TaskCard, TaskModal, ChangelogSidebar
-│  ├─ auth/               # AuthForm (shared by login + signup)
+│  ├─ auth/               # AuthForm (login + signup), AuthGuard (route protection)
 │  ├─ project/            # NewProjectModal (+ context provider)
 │  └─ icons.tsx           # Inline SVG icon set
 └─ lib/
-   ├─ data.ts             # Mock data (shaped close to the future API)
+   ├─ api.ts              # Axios client: token storage, interceptors, typed API calls
+   ├─ auth.tsx            # AuthProvider + useAuth (JWT state)
+   ├─ events.ts           # Tiny event bus to refresh lists after writes
+   ├─ data.ts             # Mock data (dashboard widgets without an API source)
    └─ utils.ts            # cn() classname helper
 
 backend/                    # NestJS API (its own app — run separately)

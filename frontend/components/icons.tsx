@@ -184,3 +184,11 @@ export const LogoIcon = (p: IconProps) => (
     <path d="M3 9h18M9 9v12" />
   </Icon>
 );
+
+export const LogoutIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M15 4h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-2" />
+    <path d="M10 17l-5-5 5-5" />
+    <path d="M5 12h12" />
+  </Icon>
+);

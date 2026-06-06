@@ -11,12 +11,18 @@ export class ProjectsService {
     return this.prisma.project.create({ data: { ...dto, ownerId } });
   }
 
-  findAll(ownerId: string) {
-    return this.prisma.project.findMany({
+  async findAll(ownerId: string) {
+    const projects = await this.prisma.project.findMany({
       where: { ownerId },
       orderBy: { createdAt: 'desc' },
-      include: { _count: { select: { tasks: true } } },
+      include: { tasks: { select: { status: true } } },
     });
+    // Surface task/done counts so the dashboard can show real progress.
+    return projects.map(({ tasks, ...project }) => ({
+      ...project,
+      taskCount: tasks.length,
+      doneCount: tasks.filter((t) => t.status === 'DONE').length,
+    }));
   }
 
   async findOne(ownerId: string, id: string) {

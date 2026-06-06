@@ -1,14 +1,13 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import {
-  activeProjects,
   dashboardSummary,
   recentActivity,
   upcomingDeadlines,
   workload,
 } from "@/lib/data";
 import { Card } from "@/components/ui/Card";
-import { ProjectCard } from "@/components/dashboard/ProjectCard";
+import { ActiveProjects } from "@/components/dashboard/ActiveProjects";
 import { DeadlineItem } from "@/components/dashboard/DeadlineItem";
 import { ActivityItem } from "@/components/dashboard/ActivityItem";
 import { WorkloadChart } from "@/components/dashboard/WorkloadChart";
@@ -59,11 +58,7 @@ export default function DashboardPage() {
             </Link>
           }
         >
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {activeProjects.map((project) => (
-              <ProjectCard key={project.id} project={project} />
-            ))}
-          </div>
+          <ActiveProjects />
         </Card>
 
         <Card title="Upcoming Deadlines">

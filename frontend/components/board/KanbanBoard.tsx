@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -13,14 +13,27 @@ import {
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import {
   kanbanColumns,
-  tasks as initialTasks,
   type KanbanColumnDef,
   type Task,
   type TaskStatus,
 } from "@/lib/data";
+import { tasksApi, toUiStatus, type ApiTask } from "@/lib/api";
+import { TASKS_CHANGED, onChange } from "@/lib/events";
 import { cn } from "@/lib/utils";
 import { KanbanColumn } from "@/components/board/KanbanColumn";
 import { TaskCard } from "@/components/board/TaskCard";
+
+/** Maps a backend task into the board's task shape. */
+function toUiTask(t: ApiTask): Task {
+  return {
+    id: t.id,
+    title: t.title,
+    project: t.project?.name ?? "",
+    status: toUiStatus(t.status),
+    // The backend has no priority concept yet; default for display.
+    priority: "medium",
+  };
+}
 
 const DOT: Record<KanbanColumnDef["accent"], string> = {
   neutral: "bg-slate-400",
@@ -41,8 +54,30 @@ function useIsClient() {
 
 export function KanbanBoard() {
   const isClient = useIsClient();
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
+
+  // Load tasks from the API, and reload when one is created/edited elsewhere.
+  useEffect(() => {
+    let active = true;
+    const load = () => {
+      tasksApi
+        .list()
+        .then((data) => {
+          if (!active) return;
+          setTasks(data.map(toUiTask));
+        })
+        .catch(() => {})
+        .finally(() => active && setLoading(false));
+    };
+    load();
+    const off = onChange(TASKS_CHANGED, load);
+    return () => {
+      active = false;
+      off();
+    };
+  }, []);
 
   // A small distance threshold lets clicks (e.g. the column "+") through
   // without starting a drag. KeyboardSensor adds keyboard accessibility.
@@ -80,6 +115,12 @@ export function KanbanBoard() {
           </div>
         ))}
       </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <p className="py-12 text-center text-sm text-slate-500">Loading tasks…</p>
     );
   }
 
