@@ -3,8 +3,8 @@
 A high-performance project management tool for planning, tracking, and shipping
 work. The **frontend** (Next.js, in [`frontend/`](frontend/)) is feature-complete on mock
 data — app shell, UI library, dashboard, auth screens, and a Kanban board. The
-**backend** (NestJS, in [`backend/`](backend/)) is underway, starting with
-authentication.
+**backend** (NestJS, in [`backend/`](backend/)) provides the full API — auth, projects,
+tasks, and an auto-logged changelog. Next up: wiring the two together.
 
 ## Tech Stack
 
@@ -63,11 +63,11 @@ authentication.
 - [x] Project model + CRUD endpoints (owner-scoped, JWT-guarded)
 - [x] Task model + CRUD + PATCH status endpoint
 
-**Sprint 6 — Changelog + seeding API (BE)**
+**Sprint 6 — Changelog + seeding API (BE)** ✅
 
-- [ ] Changelog model — auto-log on task update
-- [ ] `GET /api/changelogs` endpoint
-- [ ] `POST /api/seed` — database seed endpoint
+- [x] Changelog model — auto-log on task update
+- [x] `GET /api/changelogs` endpoint
+- [x] `POST /api/seed` — database seed endpoint
 
 ### Phase 3 — Integration (Sprints 7–8)
 
@@ -106,14 +106,19 @@ shell, UI library, dashboard, auth screens, and the Kanban board (drag-and-drop,
 modal, changelog sidebar) are in place, running on mock data from
 [`frontend/lib/data.ts`](frontend/lib/data.ts).
 
-**Backend (Sprints 4–5)** — the NestJS app in [`backend/`](backend/) is built and
+**Backend (Sprints 4–6)** — the NestJS app in [`backend/`](backend/) is built and
 **verified end-to-end** against MySQL (via Prisma). Sprint 4: `register`/`login` issue
 JWTs (bcrypt-hashed passwords), `JwtAuthGuard` protects `GET /api/auth/me`. Sprint 5:
 owner-scoped **Project** and **Task** CRUD plus `PATCH /api/tasks/:id/status` — all
-JWT-guarded (401 without a token). `DATABASE_URL` comes from `backend/.env`; the schema
-is applied with `prisma db push`.
+JWT-guarded (401 without a token). Sprint 6: a **Changelog** model auto-logs task
+creations and status/title changes, surfaced at `GET /api/changelogs` (per-user, newest
+first); `POST /api/seed` populates an idempotent demo dataset (user, projects, tasks,
+changelog) and returns the demo login. `DATABASE_URL` comes from `backend/.env`; the
+schema is applied with `prisma db push`.
 
-**Next up — Sprint 6 (backend):** changelog (auto-log task updates) + DB seed endpoint.
+**Next up — Sprint 7 (integration):** wire the frontend to the API with Axios — login /
+signup store the JWT, dummy project / task data is replaced with real calls, and routes
+redirect to login without a token.
 ## Getting Started
 
 ### Frontend (`frontend/`)
@@ -139,10 +144,18 @@ npm run db:push               # create tables from the Prisma schema
 npm run start:dev             # http://localhost:3001/api  (health: GET /api/health)
 ```
 
-API endpoints (all under `/api`; everything except `auth/*` needs `Authorization: Bearer <token>`):
+To load demo data, `POST /api/seed` once the server is running — it creates a
+`demo@taskflow.dev` / `password123` user with sample projects, tasks, and changelog
+entries, and returns those credentials.
+
+API endpoints (all under `/api`; everything except `auth/*` and `seed` needs `Authorization: Bearer <token>`):
 - `POST /auth/register` · `POST /auth/login` → `{ token, user }` · `GET /auth/me`
 - `GET` / `POST /projects` · `GET` / `PATCH` / `DELETE /projects/:id`
 - `GET /projects/:id/tasks` · `POST /tasks` · `PATCH` / `DELETE /tasks/:id` · `PATCH /tasks/:id/status`
+- `GET /changelogs` — the current user's recent task activity (newest first)
+- `POST /seed` — reset + load the demo dataset (open; blocked in production unless `ALLOW_SEED=true`)
+
+For a step-by-step way to verify the API in Postman, see [`TESTING.md`](TESTING.md).
 
 ## Project Structure
 
@@ -168,15 +181,17 @@ frontend/                   # Next.js app
 
 backend/                    # NestJS API (its own app — run separately)
 ├─ prisma/
-│  └─ schema.prisma       # data models (User, Project, Task) + MySQL datasource
+│  └─ schema.prisma       # data models (User, Project, Task, Changelog) + MySQL datasource
 ├─ src/
 │  ├─ auth/               # register/login, JWT strategy + JwtAuthGuard, DTOs
 │  ├─ users/              # UsersService (Prisma)
 │  ├─ projects/           # Projects CRUD (service, controller, DTOs)
 │  ├─ tasks/              # Tasks CRUD + PATCH status (service, controller, DTOs)
+│  ├─ changelog/          # auto-logged task history + GET /changelogs
+│  ├─ seed/               # POST /seed — idempotent demo dataset
 │  ├─ common/             # CurrentUser decorator
 │  ├─ prisma/             # PrismaService + global PrismaModule
-│  ├─ app.module.ts       # wires Prisma + Auth + Projects + Tasks
+│  ├─ app.module.ts       # wires Prisma + Auth + Projects + Tasks + Changelog + Seed
 │  └─ main.ts             # bootstrap: /api prefix, CORS, ValidationPipe
 └─ .env.example           # DATABASE_URL + JWT config template
 ```

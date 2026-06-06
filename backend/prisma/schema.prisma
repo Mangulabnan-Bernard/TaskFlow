@@ -8,12 +8,13 @@ datasource db {
 }
 
 model User {
-  id        String    @id @default(uuid())
-  email     String    @unique
-  name      String
-  password  String
-  createdAt DateTime  @default(now())
-  projects  Project[]
+  id         String      @id @default(uuid())
+  email      String      @unique
+  name       String
+  password   String
+  createdAt  DateTime    @default(now())
+  projects   Project[]
+  changelogs Changelog[]
 
   @@map("users")
 }
@@ -38,14 +39,34 @@ enum TaskStatus {
 }
 
 model Task {
-  id          String     @id @default(uuid())
+  id          String      @id @default(uuid())
   title       String
-  description String?    @db.Text
-  status      TaskStatus @default(TODO)
+  description String?     @db.Text
+  status      TaskStatus  @default(TODO)
   projectId   String
-  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  changelogs  Changelog[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   @@map("tasks")
+}
+
+// Audit trail of task changes. taskId is nullable with onDelete: SetNull so an
+// entry survives its task being deleted (taskTitle keeps it readable); actorId
+// scopes "my changelog" queries to the user who made the change.
+model Changelog {
+  id        String   @id @default(uuid())
+  taskId    String?
+  task      Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  taskTitle String
+  field     String
+  from      String?
+  to        String?
+  actorId   String
+  actor     User     @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@map("changelogs")
 }

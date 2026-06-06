@@ -10,7 +10,9 @@ export interface AuthUser {
 /** Reads the authenticated user (set by JwtStrategy) off the request. */
 export const CurrentUser = createParamDecorator(
   (_data: unknown, ctx: ExecutionContext): AuthUser => {
-    const request = ctx.switchToHttp().getRequest<Request & { user: AuthUser }>();
+    const request = ctx
+      .switchToHttp()
+      .getRequest<Request & { user: AuthUser }>();
     return request.user;
   },
 );
