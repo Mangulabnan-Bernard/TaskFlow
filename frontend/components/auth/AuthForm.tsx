@@ -107,17 +107,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
 
         <div className="space-y-1.5">
           {mode === "login" ? (
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-slate-200">
-                Password
-              </span>
-              <Link
-                href="/login"
-                className="text-xs font-medium text-brand transition-colors hover:text-brand-light"
-              >
-                Forgot password?
-              </Link>
-            </div>
+            <span className="text-sm font-medium text-slate-200">Password</span>
           ) : null}
           <Input
             label={mode === "signup" ? "Password" : undefined}

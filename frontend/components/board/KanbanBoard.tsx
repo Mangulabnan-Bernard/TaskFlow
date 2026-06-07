@@ -17,7 +17,13 @@ import {
   type Task,
   type TaskStatus,
 } from "@/lib/data";
-import { tasksApi, toApiStatus, toUiStatus, type ApiTask } from "@/lib/api";
+import {
+  tasksApi,
+  toApiStatus,
+  toUiPriority,
+  toUiStatus,
+  type ApiTask,
+} from "@/lib/api";
 import {
   CHANGELOG_CHANGED,
   PROJECTS_CHANGED,
@@ -38,8 +44,7 @@ function toUiTask(t: ApiTask): Task {
     title: t.title,
     project: t.project?.name ?? "",
     status: toUiStatus(t.status),
-    // The backend has no priority concept yet; default for display.
-    priority: "medium",
+    priority: toUiPriority(t.priority),
   };
 }
 

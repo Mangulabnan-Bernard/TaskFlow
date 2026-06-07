@@ -9,11 +9,17 @@ import {
   useState,
 } from "react";
 import type { ReactNode } from "react";
-import { kanbanColumns, type Task, type TaskStatus } from "@/lib/data";
+import {
+  kanbanColumns,
+  type Task,
+  type TaskPriority,
+  type TaskStatus,
+} from "@/lib/data";
 import {
   apiErrorMessage,
   projectsApi,
   tasksApi,
+  toApiPriority,
   toApiStatus,
   type ApiProject,
 } from "@/lib/api";
@@ -54,6 +60,7 @@ export function TaskModalProvider({ children }: { children: ReactNode }) {
   const [projects, setProjects] = useState<ApiProject[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const toast = useToast();
 
   // Keep the project picker in sync with the user's projects.
@@ -72,12 +79,14 @@ export function TaskModalProvider({ children }: { children: ReactNode }) {
     setEditing(null);
     setDefaultStatus(status ?? "todo");
     setError(null);
+    setConfirmDelete(false);
     setIsOpen(true);
   }, []);
 
   const openEdit = useCallback((task: Task) => {
     setEditing(task);
     setError(null);
+    setConfirmDelete(false);
     setIsOpen(true);
   }, []);
 
@@ -94,13 +103,19 @@ export function TaskModalProvider({ children }: { children: ReactNode }) {
     const title = String(form.get("title") ?? "").trim();
     const description = String(form.get("description") ?? "").trim() || undefined;
     const status = toApiStatus(String(form.get("status")) as TaskStatus);
+    const priority = toApiPriority(String(form.get("priority")) as TaskPriority);
 
     try {
       if (editing) {
-        await tasksApi.update(editing.id, { title, description, status });
+        await tasksApi.update(editing.id, {
+          title,
+          description,
+          status,
+          priority,
+        });
       } else {
         const projectId = String(form.get("project") ?? "");
-        await tasksApi.create({ projectId, title, description, status });
+        await tasksApi.create({ projectId, title, description, status, priority });
       }
       // Refresh the board, the dashboard (progress depends on counts), and the
       // changelog (create/edit are logged).
@@ -112,6 +127,23 @@ export function TaskModalProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       setError(apiErrorMessage(err, "Could not save the task. Please try again."));
     } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!editing) return;
+    setError(null);
+    setSubmitting(true);
+    try {
+      await tasksApi.remove(editing.id);
+      emitChange(TASKS_CHANGED);
+      emitChange(PROJECTS_CHANGED);
+      emitChange(CHANGELOG_CHANGED);
+      toast.success("Task deleted");
+      close();
+    } catch (err) {
+      setError(apiErrorMessage(err, "Could not delete the task."));
       setSubmitting(false);
     }
   }
@@ -141,6 +173,18 @@ export function TaskModalProvider({ children }: { children: ReactNode }) {
         }
         footer={
           <>
+            {editing ? (
+              <Button
+                variant={confirmDelete ? "danger" : "ghost"}
+                className={confirmDelete ? "mr-auto" : "mr-auto text-danger"}
+                disabled={submitting}
+                onClick={
+                  confirmDelete ? handleDelete : () => setConfirmDelete(true)
+                }
+              >
+                {confirmDelete ? "Confirm delete" : "Delete"}
+              </Button>
+            ) : null}
             <Button variant="ghost" onClick={close}>
               Cancel
             </Button>

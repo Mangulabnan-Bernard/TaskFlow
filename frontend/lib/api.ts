@@ -1,5 +1,8 @@
 import axios from "axios";
-import type { TaskStatus as UiTaskStatus } from "@/lib/data";
+import type {
+  TaskPriority as UiTaskPriority,
+  TaskStatus as UiTaskStatus,
+} from "@/lib/data";
 
 /**
  * Axios instance for the TaskFlow backend. The base URL comes from
@@ -129,12 +132,14 @@ export interface ApiProject {
 }
 
 export type ApiTaskStatus = "TODO" | "IN_PROGRESS" | "DONE";
+export type ApiTaskPriority = "LOW" | "MEDIUM" | "HIGH";
 
 export interface ApiTask {
   id: string;
   title: string;
   description: string | null;
   status: ApiTaskStatus;
+  priority: ApiTaskPriority;
   projectId: string;
   createdAt: string;
   updatedAt: string;
@@ -172,6 +177,23 @@ const API_TO_UI: Record<ApiTaskStatus, UiTaskStatus> = {
 export const toApiStatus = (s: UiTaskStatus): ApiTaskStatus => UI_TO_API[s];
 export const toUiStatus = (s: ApiTaskStatus): UiTaskStatus => API_TO_UI[s];
 
+const UI_TO_API_PRIORITY: Record<UiTaskPriority, ApiTaskPriority> = {
+  low: "LOW",
+  medium: "MEDIUM",
+  high: "HIGH",
+};
+
+const API_TO_UI_PRIORITY: Record<ApiTaskPriority, UiTaskPriority> = {
+  LOW: "low",
+  MEDIUM: "medium",
+  HIGH: "high",
+};
+
+export const toApiPriority = (p: UiTaskPriority): ApiTaskPriority =>
+  UI_TO_API_PRIORITY[p];
+export const toUiPriority = (p: ApiTaskPriority): UiTaskPriority =>
+  API_TO_UI_PRIORITY[p];
+
 /* ----------------------------------------------------------------------------
  * Typed API calls
  * -------------------------------------------------------------------------- */
@@ -192,6 +214,8 @@ export const projectsApi = {
     api
       .post<ApiProject>("/projects", { name, description })
       .then((r) => r.data),
+  remove: (id: string) =>
+    api.delete<{ id: string }>(`/projects/${id}`).then((r) => r.data),
 };
 
 export const tasksApi = {
@@ -201,15 +225,23 @@ export const tasksApi = {
     title: string;
     description?: string;
     status?: ApiTaskStatus;
+    priority?: ApiTaskPriority;
   }) => api.post<ApiTask>("/tasks", input).then((r) => r.data),
   update: (
     id: string,
-    input: { title?: string; description?: string; status?: ApiTaskStatus },
+    input: {
+      title?: string;
+      description?: string;
+      status?: ApiTaskStatus;
+      priority?: ApiTaskPriority;
+    },
   ) => api.patch<ApiTask>(`/tasks/${id}`, input).then((r) => r.data),
   updateStatus: (id: string, status: ApiTaskStatus) =>
     api
       .patch<ApiTask>(`/tasks/${id}/status`, { status })
       .then((r) => r.data),
+  remove: (id: string) =>
+    api.delete<{ id: string }>(`/tasks/${id}`).then((r) => r.data),
 };
 
 export const changelogApi = {

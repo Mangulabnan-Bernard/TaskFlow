@@ -1,11 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { projectsApi, type ApiProject } from "@/lib/api";
+import { apiErrorMessage, projectsApi, type ApiProject } from "@/lib/api";
 import type { Project } from "@/lib/data";
 import { ProjectCard } from "@/components/dashboard/ProjectCard";
 import { Spinner } from "@/components/ui/Spinner";
-import { PROJECTS_CHANGED, TASKS_CHANGED, onChange } from "@/lib/events";
+import { useToast } from "@/components/ui/Toast";
+import {
+  PROJECTS_CHANGED,
+  TASKS_CHANGED,
+  emitChange,
+  onChange,
+} from "@/lib/events";
 
 /** Maps a backend project into the shape ProjectCard renders. */
 function toCardProject(p: ApiProject): Project {
@@ -27,6 +33,20 @@ function toCardProject(p: ApiProject): Project {
 export function ActiveProjects() {
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [error, setError] = useState(false);
+  const toast = useToast();
+
+  function handleDelete(id: string) {
+    projectsApi
+      .remove(id)
+      .then(() => {
+        toast.success("Project deleted");
+        emitChange(PROJECTS_CHANGED);
+        emitChange(TASKS_CHANGED);
+      })
+      .catch((err) =>
+        toast.error(apiErrorMessage(err, "Could not delete the project.")),
+      );
+  }
 
   useEffect(() => {
     let active = true;
@@ -76,7 +96,11 @@ export function ActiveProjects() {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       {projects.map((project) => (
-        <ProjectCard key={project.id} project={project} />
+        <ProjectCard
+          key={project.id}
+          project={project}
+          onDelete={handleDelete}
+        />
       ))}
     </div>
   );

@@ -5,7 +5,7 @@ import {
   IsUUID,
   MinLength,
 } from 'class-validator';
-import { TaskStatus } from '@prisma/client';
+import { TaskPriority, TaskStatus } from '@prisma/client';
 
 export class CreateTaskDto {
   @IsUUID()
@@ -22,4 +22,8 @@ export class CreateTaskDto {
   @IsOptional()
   @IsEnum(TaskStatus)
   status?: TaskStatus;
+
+  @IsOptional()
+  @IsEnum(TaskPriority)
+  priority?: TaskPriority;
 }

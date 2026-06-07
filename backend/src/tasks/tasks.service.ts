@@ -20,6 +20,7 @@ export class TasksService {
         title: dto.title,
         description: dto.description,
         status: dto.status,
+        priority: dto.priority,
       },
     });
     await this.changelog.record({
@@ -92,6 +93,16 @@ export class TasksService {
         field: 'title',
         from: before.title,
         to: after.title,
+      });
+    }
+    if (before.priority !== after.priority) {
+      await this.changelog.record({
+        taskId: after.id,
+        taskTitle: after.title,
+        actorId,
+        field: 'priority',
+        from: before.priority,
+        to: after.priority,
       });
     }
   }
