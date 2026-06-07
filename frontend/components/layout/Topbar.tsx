@@ -23,7 +23,7 @@ export function Topbar() {
   const { toggle } = useMobileNav();
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-3 border-b border-line bg-canvas/80 px-4 backdrop-blur md:gap-4 md:px-6">
+    <header className="relative z-20 flex h-16 shrink-0 items-center gap-3 border-b border-line bg-canvas/80 px-4 backdrop-blur md:gap-4 md:px-6">
       {/* Mobile menu toggle */}
       <button
         type="button"
