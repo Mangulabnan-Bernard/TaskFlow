@@ -4,14 +4,13 @@ import {
   dashboardSummary,
   recentActivity,
   upcomingDeadlines,
-  workload,
 } from "@/lib/data";
 import { Card } from "@/components/ui/Card";
 import { ActiveProjects } from "@/components/dashboard/ActiveProjects";
 import { DeadlineItem } from "@/components/dashboard/DeadlineItem";
 import { ActivityItem } from "@/components/dashboard/ActivityItem";
-import { WorkloadChart } from "@/components/dashboard/WorkloadChart";
-import { CalendarIcon, ExpandIcon, BoltIcon, ChevronRightIcon } from "@/components/icons";
+import { WorkloadCard } from "@/components/dashboard/WorkloadCard";
+import { CalendarIcon } from "@/components/icons";
 
 export const metadata: Metadata = {
   title: "Dashboard — TaskFlow",
@@ -84,37 +83,7 @@ export default function DashboardPage() {
           </ol>
         </Card>
 
-        <Card
-          className="lg:col-span-2"
-          title="Workload Distribution"
-          action={
-            <button
-              type="button"
-              aria-label="Expand workload"
-              className="focus-ring rounded-md p-1 text-slate-500 transition-colors hover:bg-elevated hover:text-slate-200"
-            >
-              <ExpandIcon className="size-5" />
-            </button>
-          }
-        >
-          <WorkloadChart
-            optimized={workload.optimized}
-            segments={workload.segments}
-          />
-          <div className="mt-6 flex items-center gap-3 border-t border-line pt-5">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-success/10 text-success">
-              <BoltIcon className="size-4" />
-            </span>
-            <p className="text-sm text-slate-400">{workload.trendNote}</p>
-            <button
-              type="button"
-              aria-label="View workload details"
-              className="focus-ring ml-auto rounded-md p-1.5 text-slate-500 transition-colors hover:bg-elevated hover:text-slate-200"
-            >
-              <ChevronRightIcon className="size-4" />
-            </button>
-          </div>
-        </Card>
+        <WorkloadCard />
       </div>
     </div>
   );
