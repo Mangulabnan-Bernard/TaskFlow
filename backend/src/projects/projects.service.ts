@@ -17,11 +17,12 @@ export class ProjectsService {
       orderBy: { createdAt: 'desc' },
       include: { tasks: { select: { status: true } } },
     });
-    // Surface task/done counts so the dashboard can show real progress.
+    // Surface per-status counts so the dashboard can show real progress.
     return projects.map(({ tasks, ...project }) => ({
       ...project,
       taskCount: tasks.length,
       doneCount: tasks.filter((t) => t.status === 'DONE').length,
+      inProgressCount: tasks.filter((t) => t.status === 'IN_PROGRESS').length,
     }));
   }
 

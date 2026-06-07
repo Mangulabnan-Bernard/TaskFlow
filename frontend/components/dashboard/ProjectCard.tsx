@@ -3,7 +3,6 @@
 import { useState } from "react";
 import type { Project, ProjectStatus } from "@/lib/data";
 import { Badge, type BadgeVariant } from "@/components/ui/Badge";
-import { AvatarStack } from "@/components/ui/Avatar";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { MoreIcon } from "@/components/icons";
 
@@ -13,11 +12,20 @@ const STATUS: Record<ProjectStatus, { label: string; variant: BadgeVariant }> = 
   "at-risk": { label: "At Risk", variant: "danger" },
 };
 
+export interface ProjectSummary {
+  todo: number;
+  inProgress: number;
+  done: number;
+  total: number;
+}
+
 export function ProjectCard({
   project,
+  summary,
   onDelete,
 }: {
   project: Project;
+  summary?: ProjectSummary;
   onDelete?: (id: string) => void;
 }) {
   const status = STATUS[project.status];
@@ -95,14 +103,26 @@ export function ProjectCard({
         {project.description}
       </p>
 
-      <div className="mt-6 flex items-center gap-4">
-        <AvatarStack
-          avatars={project.members}
-          extra={project.extraMembers}
-          size="sm"
-          ring="ring-elevated"
-        />
-        <div className="flex flex-1 items-center gap-3">
+      <div className="mt-6 space-y-3">
+        {summary && summary.total > 0 ? (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-1.5 rounded-full bg-slate-400" />
+              {summary.todo} To do
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-1.5 rounded-full bg-brand" />
+              {summary.inProgress} In progress
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-1.5 rounded-full bg-success" />
+              {summary.done} Done
+            </span>
+          </div>
+        ) : (
+          <p className="text-xs text-slate-500">No tasks yet</p>
+        )}
+        <div className="flex items-center gap-3">
           <ProgressBar value={project.progress} accent={project.accent} />
           <span className="text-xs font-medium tabular-nums text-slate-300">
             {project.progress}%

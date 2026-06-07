@@ -129,6 +129,7 @@ export interface ApiProject {
   updatedAt: string;
   taskCount: number;
   doneCount: number;
+  inProgressCount: number;
 }
 
 export type ApiTaskStatus = "TODO" | "IN_PROGRESS" | "DONE";

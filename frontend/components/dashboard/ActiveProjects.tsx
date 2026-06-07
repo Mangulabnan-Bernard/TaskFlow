@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { apiErrorMessage, projectsApi, type ApiProject } from "@/lib/api";
 import type { Project } from "@/lib/data";
-import { ProjectCard } from "@/components/dashboard/ProjectCard";
+import { ProjectCard, type ProjectSummary } from "@/components/dashboard/ProjectCard";
 import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/components/ui/Toast";
 import {
@@ -30,8 +30,17 @@ function toCardProject(p: ApiProject): Project {
   };
 }
 
+function toSummary(p: ApiProject): ProjectSummary {
+  return {
+    total: p.taskCount,
+    done: p.doneCount,
+    inProgress: p.inProgressCount,
+    todo: p.taskCount - p.doneCount - p.inProgressCount,
+  };
+}
+
 export function ActiveProjects() {
-  const [projects, setProjects] = useState<Project[] | null>(null);
+  const [projects, setProjects] = useState<ApiProject[] | null>(null);
   const [error, setError] = useState(false);
   const toast = useToast();
 
@@ -55,7 +64,7 @@ export function ActiveProjects() {
         .list()
         .then((data) => {
           if (!active) return;
-          setProjects(data.map(toCardProject));
+          setProjects(data);
           setError(false);
         })
         .catch(() => active && setError(true));
@@ -95,10 +104,11 @@ export function ActiveProjects() {
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      {projects.map((project) => (
+      {projects.map((p) => (
         <ProjectCard
-          key={project.id}
-          project={project}
+          key={p.id}
+          project={toCardProject(p)}
+          summary={toSummary(p)}
           onDelete={handleDelete}
         />
       ))}
