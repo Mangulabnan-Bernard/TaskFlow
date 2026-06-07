@@ -141,6 +141,17 @@ export interface ApiTask {
   project?: { id: string; name: string };
 }
 
+export interface ApiChangelog {
+  id: string;
+  taskId: string | null;
+  taskTitle: string;
+  field: string; // "created" | "status" | "title"
+  from: string | null;
+  to: string | null;
+  actorId: string;
+  createdAt: string;
+}
+
 /* ----------------------------------------------------------------------------
  * Status mapping — UI uses "todo" / "in-progress" / "done"; the API uses the
  * uppercase enum.
@@ -199,4 +210,8 @@ export const tasksApi = {
     api
       .patch<ApiTask>(`/tasks/${id}/status`, { status })
       .then((r) => r.data),
+};
+
+export const changelogApi = {
+  list: () => api.get<ApiChangelog[]>("/changelogs").then((r) => r.data),
 };

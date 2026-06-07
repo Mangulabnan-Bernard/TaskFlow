@@ -78,11 +78,11 @@ tasks, and an auto-logged changelog. Next up: wiring the two together.
 - [x] Protected routes — redirect to login if no token
 - [x] Create project / task forms persist via the API; Topbar shows the user + logout
 
-**Sprint 8 — Interactivity + real-time (Both)**
+**Sprint 8 — Interactivity + real-time (Both)** ✅
 
-- [ ] Drag-and-drop triggers real PATCH status API
-- [ ] Changelog sidebar fetches real data
-- [ ] Status updates reflected across the UI
+- [x] Drag-and-drop triggers real PATCH status API (optimistic, rolls back on error)
+- [x] Changelog sidebar fetches real data
+- [x] Status updates reflected across the UI (board, dashboard progress, changelog)
 
 ### Phase 4 — Polish & Delivery (Sprints 9–10)
 
@@ -118,15 +118,19 @@ first); `POST /api/seed` populates an idempotent demo dataset (user, projects, t
 changelog) and returns the demo login. `DATABASE_URL` comes from `backend/.env`; the
 schema is applied with `prisma db push`.
 
-**Integration (Sprint 7)** — the frontend now talks to the API via Axios
+**Integration (Sprints 7–8)** — the frontend talks to the API via Axios
 ([`frontend/lib/api.ts`](frontend/lib/api.ts)). Login / signup hit the Auth API and store
 the JWT (attached to every request by an interceptor); the `(app)` shell is guarded and
 redirects to `/login` without a token. The dashboard's Active Projects and the Kanban
 board load real data, and the New Project / New Task forms persist through the API. The
 API base URL comes from `NEXT_PUBLIC_API_URL` (see [`frontend/.env.example`](frontend/.env.example)).
+Sprint 8 makes the board live: dragging a card fires a real `PATCH /tasks/:id/status`
+(optimistic, rolling back on error), the changelog sidebar reads `GET /changelogs`, and a
+status change ripples to the board counts, dashboard progress, and changelog via a small
+event bus ([`frontend/lib/events.ts`](frontend/lib/events.ts)).
 
-**Next up — Sprint 8 (interactivity):** drag-and-drop triggers a real status PATCH, the
-changelog sidebar fetches real data, and status changes reflect across the UI.
+**Next up — Sprint 9 (polish):** toasts, loading spinners, empty/error states, friendlier
+error handling, and a responsive layout pass.
 ## Getting Started
 
 ### Frontend (`frontend/`)

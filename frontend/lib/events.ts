@@ -6,6 +6,7 @@
 
 export const PROJECTS_CHANGED = "taskflow:projects-changed";
 export const TASKS_CHANGED = "taskflow:tasks-changed";
+export const CHANGELOG_CHANGED = "taskflow:changelog-changed";
 
 export function emitChange(event: string) {
   if (typeof window !== "undefined") {

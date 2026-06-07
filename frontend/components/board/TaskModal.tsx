@@ -17,7 +17,13 @@ import {
   toApiStatus,
   type ApiProject,
 } from "@/lib/api";
-import { PROJECTS_CHANGED, TASKS_CHANGED, emitChange, onChange } from "@/lib/events";
+import {
+  CHANGELOG_CHANGED,
+  PROJECTS_CHANGED,
+  TASKS_CHANGED,
+  emitChange,
+  onChange,
+} from "@/lib/events";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
@@ -94,9 +100,11 @@ export function TaskModalProvider({ children }: { children: ReactNode }) {
         const projectId = String(form.get("project") ?? "");
         await tasksApi.create({ projectId, title, description, status });
       }
-      // Refresh the board (and the dashboard, whose progress depends on counts).
+      // Refresh the board, the dashboard (progress depends on counts), and the
+      // changelog (create/edit are logged).
       emitChange(TASKS_CHANGED);
       emitChange(PROJECTS_CHANGED);
+      emitChange(CHANGELOG_CHANGED);
       close();
     } catch (err) {
       setError(apiErrorMessage(err, "Could not save the task. Please try again."));

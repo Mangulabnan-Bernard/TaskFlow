@@ -17,8 +17,14 @@ import {
   type Task,
   type TaskStatus,
 } from "@/lib/data";
-import { tasksApi, toUiStatus, type ApiTask } from "@/lib/api";
-import { TASKS_CHANGED, onChange } from "@/lib/events";
+import { tasksApi, toApiStatus, toUiStatus, type ApiTask } from "@/lib/api";
+import {
+  CHANGELOG_CHANGED,
+  PROJECTS_CHANGED,
+  TASKS_CHANGED,
+  emitChange,
+  onChange,
+} from "@/lib/events";
 import { cn } from "@/lib/utils";
 import { KanbanColumn } from "@/components/board/KanbanColumn";
 import { TaskCard } from "@/components/board/TaskCard";
@@ -135,14 +141,32 @@ export function KanbanBoard() {
 
     const newStatus = String(over.id) as TaskStatus;
     const taskId = String(active.id);
+    const moved = tasks.find((task) => task.id === taskId);
+    if (!moved || moved.status === newStatus) return;
+    const prevStatus = moved.status;
 
+    // Move the card immediately (optimistic), then persist the status change.
     setTasks((prev) =>
       prev.map((task) =>
-        task.id === taskId && task.status !== newStatus
-          ? { ...task, status: newStatus }
-          : task,
+        task.id === taskId ? { ...task, status: newStatus } : task,
       ),
     );
+
+    tasksApi
+      .updateStatus(taskId, toApiStatus(newStatus))
+      .then(() => {
+        // The backend logged a changelog entry; refresh dependents.
+        emitChange(CHANGELOG_CHANGED);
+        emitChange(PROJECTS_CHANGED);
+      })
+      .catch(() => {
+        // Roll back on failure so the board reflects the real state.
+        setTasks((prev) =>
+          prev.map((task) =>
+            task.id === taskId ? { ...task, status: prevStatus } : task,
+          ),
+        );
+      });
   }
 
   return (
