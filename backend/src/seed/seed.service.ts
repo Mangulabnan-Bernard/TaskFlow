@@ -6,9 +6,17 @@ import { PrismaService } from '../prisma/prisma.service';
 const DEMO_EMAIL = 'demo@taskflow.dev';
 const DEMO_PASSWORD = 'password123';
 
+const SEED_MEMBERS: { name: string; role: string }[] = [
+  { name: 'John', role: 'Developer' },
+  { name: 'Maria', role: 'Designer' },
+  { name: 'Alex', role: 'Tester' },
+];
+
 interface SeedTask {
   title: string;
   status: TaskStatus;
+  /** Team member name to assign (must match a SEED_MEMBERS entry). */
+  assign?: string;
 }
 
 // Mirrors the frontend mock data (frontend/lib/data.ts) so the seeded board
@@ -23,7 +31,11 @@ const SEED_PROJECTS: {
     description:
       'Standardizing backend communication protocols for the next-gen satellite mesh.',
     tasks: [
-      { title: 'Design auth token refresh flow', status: TaskStatus.TODO },
+      {
+        title: 'Design auth token refresh flow',
+        status: TaskStatus.TODO,
+        assign: 'John',
+      },
       {
         title: 'Write API contract for satellite mesh',
         status: TaskStatus.TODO,
@@ -31,8 +43,13 @@ const SEED_PROJECTS: {
       {
         title: 'Implement WebSocket handshake protocol',
         status: TaskStatus.IN_PROGRESS,
+        assign: 'John',
       },
-      { title: 'Fix API timeout bug', status: TaskStatus.DONE },
+      {
+        title: 'Fix API timeout bug',
+        status: TaskStatus.DONE,
+        assign: 'Alex',
+      },
     ],
   },
   {
@@ -43,12 +60,18 @@ const SEED_PROJECTS: {
       {
         title: 'Audit color-contrast tokens for accessibility',
         status: TaskStatus.TODO,
+        assign: 'Maria',
       },
       {
         title: 'Migrate legacy button components to atomic system',
         status: TaskStatus.IN_PROGRESS,
+        assign: 'Maria',
       },
-      { title: 'Set up design-token build pipeline', status: TaskStatus.DONE },
+      {
+        title: 'Set up design-token build pipeline',
+        status: TaskStatus.DONE,
+        assign: 'John',
+      },
     ],
   },
 ];
@@ -78,11 +101,20 @@ export class SeedService {
       create: { email: DEMO_EMAIL, name: 'Demo User', password },
     });
 
-    // Wipe prior demo data so re-seeding stays idempotent. Changelogs first
-    // (deleting projects cascades to tasks, which would only null their
-    // taskId), then the projects themselves.
+    // Wipe prior demo data so re-seeding stays idempotent. Changelogs first,
+    // then projects (cascades tasks), then team members (now unreferenced).
     await this.prisma.changelog.deleteMany({ where: { actorId: user.id } });
     await this.prisma.project.deleteMany({ where: { ownerId: user.id } });
+    await this.prisma.teamMember.deleteMany({ where: { ownerId: user.id } });
+
+    // Create the team and map names -> ids for task assignment.
+    const memberIds = new Map<string, string>();
+    for (const m of SEED_MEMBERS) {
+      const member = await this.prisma.teamMember.create({
+        data: { name: m.name, role: m.role, ownerId: user.id },
+      });
+      memberIds.set(m.name, member.id);
+    }
 
     let taskCount = 0;
     for (const p of SEED_PROJECTS) {
@@ -92,7 +124,12 @@ export class SeedService {
 
       for (const t of p.tasks) {
         const task = await this.prisma.task.create({
-          data: { projectId: project.id, title: t.title, status: t.status },
+          data: {
+            projectId: project.id,
+            title: t.title,
+            status: t.status,
+            assigneeId: t.assign ? memberIds.get(t.assign) : undefined,
+          },
         });
         taskCount++;
 
@@ -122,12 +159,13 @@ export class SeedService {
     }
 
     this.logger.log(
-      `Seeded ${SEED_PROJECTS.length} projects / ${taskCount} tasks for ${DEMO_EMAIL}`,
+      `Seeded ${SEED_MEMBERS.length} members / ${SEED_PROJECTS.length} projects / ${taskCount} tasks for ${DEMO_EMAIL}`,
     );
 
     return {
       message: 'Database seeded',
       credentials: { email: DEMO_EMAIL, password: DEMO_PASSWORD },
+      members: SEED_MEMBERS.length,
       projects: SEED_PROJECTS.length,
       tasks: taskCount,
     };

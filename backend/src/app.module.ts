@@ -9,6 +9,7 @@ import { ProjectsModule } from './projects/projects.module';
 import { TasksModule } from './tasks/tasks.module';
 import { ChangelogModule } from './changelog/changelog.module';
 import { SeedModule } from './seed/seed.module';
+import { MembersModule } from './members/members.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { SeedModule } from './seed/seed.module';
     TasksModule,
     ChangelogModule,
     SeedModule,
+    MembersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

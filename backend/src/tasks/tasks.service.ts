@@ -14,6 +14,7 @@ export class TasksService {
 
   async create(ownerId: string, dto: CreateTaskDto) {
     await this.ensureProjectOwned(ownerId, dto.projectId);
+    if (dto.assigneeId) await this.ensureAssigneeOwned(ownerId, dto.assigneeId);
     const task = await this.prisma.task.create({
       data: {
         projectId: dto.projectId,
@@ -21,6 +22,7 @@ export class TasksService {
         description: dto.description,
         status: dto.status,
         priority: dto.priority,
+        assigneeId: dto.assigneeId,
       },
     });
     await this.changelog.record({
@@ -37,20 +39,25 @@ export class TasksService {
     return this.prisma.task.findMany({
       where: { projectId },
       orderBy: { createdAt: 'asc' },
+      include: { assignee: { select: { id: true, name: true, role: true } } },
     });
   }
 
-  /** Every task across the user's projects, each with its project name. */
+  /** Every task across the user's projects, each with its project + assignee. */
   findAllForOwner(ownerId: string) {
     return this.prisma.task.findMany({
       where: { project: { ownerId } },
       orderBy: { createdAt: 'asc' },
-      include: { project: { select: { id: true, name: true } } },
+      include: {
+        project: { select: { id: true, name: true } },
+        assignee: { select: { id: true, name: true, role: true } },
+      },
     });
   }
 
   async update(ownerId: string, id: string, dto: UpdateTaskDto) {
     const before = await this.ensureTaskOwned(ownerId, id);
+    if (dto.assigneeId) await this.ensureAssigneeOwned(ownerId, dto.assigneeId);
     const after = await this.prisma.task.update({ where: { id }, data: dto });
     await this.logChanges(ownerId, before, after);
     return after;
@@ -113,6 +120,15 @@ export class TasksService {
     });
     if (!project) throw new NotFoundException('Project not found');
     return project;
+  }
+
+  /** A task can only be assigned to one of the user's own team members. */
+  private async ensureAssigneeOwned(ownerId: string, assigneeId: string) {
+    const member = await this.prisma.teamMember.findFirst({
+      where: { id: assigneeId, ownerId },
+    });
+    if (!member) throw new NotFoundException('Team member not found');
+    return member;
   }
 
   /** A task is "owned" when its project belongs to the user. */
