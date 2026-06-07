@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { projectsApi, type ApiProject } from "@/lib/api";
 import type { Project } from "@/lib/data";
 import { ProjectCard } from "@/components/dashboard/ProjectCard";
+import { Spinner } from "@/components/ui/Spinner";
 import { PROJECTS_CHANGED, TASKS_CHANGED, onChange } from "@/lib/events";
 
 /** Maps a backend project into the shape ProjectCard renders. */
@@ -54,13 +55,21 @@ export function ActiveProjects() {
     return <p className="text-sm text-slate-500">Could not load projects.</p>;
   }
   if (!projects) {
-    return <p className="text-sm text-slate-500">Loading projects…</p>;
+    return (
+      <div className="flex items-center gap-2 text-sm text-slate-500">
+        <Spinner />
+        Loading projects…
+      </div>
+    );
   }
   if (projects.length === 0) {
     return (
-      <p className="text-sm text-slate-500">
-        No projects yet. Create one to get started.
-      </p>
+      <div className="rounded-xl border border-dashed border-line px-5 py-10 text-center">
+        <p className="text-sm font-medium text-slate-300">No projects yet</p>
+        <p className="mt-1 text-sm text-slate-500">
+          Create your first project to start tracking work.
+        </p>
+      </div>
     );
   }
 

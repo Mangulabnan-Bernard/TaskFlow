@@ -28,6 +28,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { useToast } from "@/components/ui/Toast";
 
 interface TaskModalContextValue {
   openCreate: (status?: TaskStatus) => void;
@@ -53,6 +54,7 @@ export function TaskModalProvider({ children }: { children: ReactNode }) {
   const [projects, setProjects] = useState<ApiProject[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
   // Keep the project picker in sync with the user's projects.
   useEffect(() => {
@@ -105,6 +107,7 @@ export function TaskModalProvider({ children }: { children: ReactNode }) {
       emitChange(TASKS_CHANGED);
       emitChange(PROJECTS_CHANGED);
       emitChange(CHANGELOG_CHANGED);
+      toast.success(editing ? "Task updated" : "Task created");
       close();
     } catch (err) {
       setError(apiErrorMessage(err, "Could not save the task. Please try again."));

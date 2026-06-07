@@ -86,12 +86,12 @@ tasks, and an auto-logged changelog. Next up: wiring the two together.
 
 ### Phase 4 — Polish & Delivery (Sprints 9–10)
 
-**Sprint 9 — Bug fixes + polish (Both)**
+**Sprint 9 — Bug fixes + polish (Both)** ✅
 
-- [ ] Fix broken flows and edge cases
-- [ ] Toast notifications, loading spinners, empty states
-- [ ] Error handling — invalid login, failed requests
-- [ ] Responsive layout pass
+- [x] Fix broken flows and edge cases
+- [x] Toast notifications, loading spinners, empty states
+- [x] Error handling — invalid login, failed requests
+- [x] Responsive layout pass (sidebar collapses into a drawer on small screens)
 
 **Sprint 10 — README + deploy + submit (Buffer)**
 
@@ -129,8 +129,14 @@ Sprint 8 makes the board live: dragging a card fires a real `PATCH /tasks/:id/st
 status change ripples to the board counts, dashboard progress, and changelog via a small
 event bus ([`frontend/lib/events.ts`](frontend/lib/events.ts)).
 
-**Next up — Sprint 9 (polish):** toasts, loading spinners, empty/error states, friendlier
-error handling, and a responsive layout pass.
+**Polish (Sprint 9)** — a toast system ([`frontend/components/ui/Toast.tsx`](frontend/components/ui/Toast.tsx))
+surfaces success/error feedback for creates, edits, and failed requests; loading spinners
+and empty/error states cover the dashboard, board, and changelog; and a responsive pass
+collapses the sidebar into a slide-in drawer (hamburger in the topbar) on small screens.
+
+**Next up — Sprint 10 (buffer):** finalize the README, optional deploy, final cleanup, and
+submit.
+
 ## Getting Started
 
 ### Frontend (`frontend/`)
@@ -186,8 +192,8 @@ frontend/                   # Next.js app
 │  ├─ layout.tsx          # Root layout (fonts, metadata, AuthProvider)
 │  └─ page.tsx            # Redirects → /login
 ├─ components/
-│  ├─ ui/                 # Button, Input, Select, Badge, Modal, Card, Avatar, ProgressBar
-│  ├─ layout/             # Sidebar, Topbar (user + logout), FAB, PlaceholderPage
+│  ├─ ui/                 # Button, Input, Select, Badge, Modal, Card, Avatar, ProgressBar, Toast, Spinner
+│  ├─ layout/             # Sidebar (drawer on mobile), Topbar (user + logout + menu), FAB, MobileNav, PlaceholderPage
 │  ├─ dashboard/          # ActiveProjects (live), ProjectCard, DeadlineItem, ActivityItem, WorkloadChart
 │  ├─ board/              # Kanban: KanbanBoard, KanbanColumn, TaskCard, TaskModal, ChangelogSidebar
 │  ├─ auth/               # AuthForm (login + signup), AuthGuard (route protection)

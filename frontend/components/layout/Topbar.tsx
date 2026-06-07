@@ -1,8 +1,15 @@
 "use client";
 
-import { SearchIcon, BellIcon, HelpIcon, LogoutIcon } from "@/components/icons";
+import {
+  SearchIcon,
+  BellIcon,
+  HelpIcon,
+  LogoutIcon,
+  MenuIcon,
+} from "@/components/icons";
 import { Avatar } from "@/components/ui/Avatar";
 import { useAuth } from "@/lib/auth";
+import { useMobileNav } from "@/components/layout/MobileNav";
 
 /** "Demo User" -> "DU", "Alex" -> "A". */
 function initialsOf(name: string): string {
@@ -16,9 +23,20 @@ function initialsOf(name: string): string {
 
 export function Topbar() {
   const { user, logout } = useAuth();
+  const { toggle } = useMobileNav();
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-4 border-b border-line bg-canvas/80 px-6 backdrop-blur">
+    <header className="flex h-16 shrink-0 items-center gap-4 border-b border-line bg-canvas/80 px-4 backdrop-blur md:px-6">
+      {/* Mobile menu toggle */}
+      <button
+        type="button"
+        onClick={toggle}
+        aria-label="Open menu"
+        className="focus-ring shrink-0 rounded-lg p-2 text-slate-400 transition-colors hover:bg-elevated hover:text-white lg:hidden"
+      >
+        <MenuIcon className="size-5" />
+      </button>
+
       {/* Search */}
       <div className="relative w-full max-w-xl">
         <SearchIcon className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-slate-500" />
@@ -50,7 +68,7 @@ export function Topbar() {
         <div className="mx-2 h-8 w-px bg-line" />
 
         <div className="flex items-center gap-3">
-          <div className="text-right leading-tight">
+          <div className="hidden text-right leading-tight sm:block">
             <p className="text-sm font-semibold text-white">
               {user?.name ?? "—"}
             </p>

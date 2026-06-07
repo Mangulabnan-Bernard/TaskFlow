@@ -28,6 +28,8 @@ import {
 import { cn } from "@/lib/utils";
 import { KanbanColumn } from "@/components/board/KanbanColumn";
 import { TaskCard } from "@/components/board/TaskCard";
+import { Spinner } from "@/components/ui/Spinner";
+import { useToast } from "@/components/ui/Toast";
 
 /** Maps a backend task into the board's task shape. */
 function toUiTask(t: ApiTask): Task {
@@ -63,6 +65,7 @@ export function KanbanBoard() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const toast = useToast();
 
   // Load tasks from the API, and reload when one is created/edited elsewhere.
   useEffect(() => {
@@ -126,7 +129,10 @@ export function KanbanBoard() {
 
   if (loading) {
     return (
-      <p className="py-12 text-center text-sm text-slate-500">Loading tasks…</p>
+      <div className="flex items-center justify-center gap-2 py-12 text-sm text-slate-500">
+        <Spinner />
+        Loading tasks…
+      </div>
     );
   }
 
@@ -166,6 +172,7 @@ export function KanbanBoard() {
             task.id === taskId ? { ...task, status: prevStatus } : task,
           ),
         );
+        toast.error("Couldn't move the task. Please try again.");
       });
   }
 

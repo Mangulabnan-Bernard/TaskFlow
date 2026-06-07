@@ -4,20 +4,23 @@ import { Topbar } from "@/components/layout/Topbar";
 import { NewProjectFab } from "@/components/layout/NewProjectFab";
 import { NewProjectProvider } from "@/components/project/NewProjectModal";
 import { AuthGuard } from "@/components/auth/AuthGuard";
+import { MobileNavProvider } from "@/components/layout/MobileNav";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <AuthGuard>
-      <NewProjectProvider>
-        <div className="flex h-screen overflow-hidden">
-          <Sidebar />
-          <div className="flex min-w-0 flex-1 flex-col">
-            <Topbar />
-            <main className="flex-1 overflow-y-auto">{children}</main>
+      <MobileNavProvider>
+        <NewProjectProvider>
+          <div className="flex h-screen overflow-hidden">
+            <Sidebar />
+            <div className="flex min-w-0 flex-1 flex-col">
+              <Topbar />
+              <main className="flex-1 overflow-y-auto">{children}</main>
+            </div>
           </div>
-        </div>
-        <NewProjectFab />
-      </NewProjectProvider>
+          <NewProjectFab />
+        </NewProjectProvider>
+      </MobileNavProvider>
     </AuthGuard>
   );
 }

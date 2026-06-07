@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { changelogApi, type ApiChangelog } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { Spinner } from "@/components/ui/Spinner";
 import { CHANGELOG_CHANGED, TASKS_CHANGED, onChange } from "@/lib/events";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -91,7 +92,10 @@ export function ChangelogSidebar() {
         {error ? (
           <p className="text-xs text-slate-500">Could not load activity.</p>
         ) : !entries ? (
-          <p className="text-xs text-slate-500">Loading activity…</p>
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <Spinner className="size-3.5" />
+            Loading activity…
+          </div>
         ) : entries.length === 0 ? (
           <p className="text-xs text-slate-500">
             No activity yet. Create or move a task to see it here.

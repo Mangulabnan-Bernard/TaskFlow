@@ -13,6 +13,7 @@ import { PROJECTS_CHANGED, emitChange } from "@/lib/events";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
+import { useToast } from "@/components/ui/Toast";
 
 interface NewProjectContextValue {
   open: () => void;
@@ -28,6 +29,7 @@ export function NewProjectProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
   const open = useCallback(() => {
     setError(null);
@@ -50,6 +52,7 @@ export function NewProjectProvider({ children }: { children: ReactNode }) {
     try {
       await projectsApi.create(name, description);
       emitChange(PROJECTS_CHANGED);
+      toast.success("Project created");
       close();
     } catch (err) {
       setError(

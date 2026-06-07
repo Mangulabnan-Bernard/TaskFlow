@@ -185,6 +185,12 @@ export const LogoIcon = (p: IconProps) => (
   </Icon>
 );
 
+export const MenuIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 6h16M4 12h16M4 18h16" />
+  </Icon>
+);
+
 export const LogoutIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M15 4h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-2" />
