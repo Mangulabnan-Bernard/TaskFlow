@@ -132,6 +132,14 @@ export interface ApiProject {
   inProgressCount: number;
 }
 
+export interface ApiMember {
+  id: string;
+  name: string;
+  role: string;
+  ownerId: string;
+  createdAt: string;
+}
+
 export type ApiTaskStatus = "TODO" | "IN_PROGRESS" | "DONE";
 export type ApiTaskPriority = "LOW" | "MEDIUM" | "HIGH";
 
@@ -142,6 +150,8 @@ export interface ApiTask {
   status: ApiTaskStatus;
   priority: ApiTaskPriority;
   projectId: string;
+  assigneeId: string | null;
+  assignee?: { id: string; name: string; role: string } | null;
   createdAt: string;
   updatedAt: string;
   project?: { id: string; name: string };
@@ -196,6 +206,34 @@ export const toUiPriority = (p: ApiTaskPriority): UiTaskPriority =>
   API_TO_UI_PRIORITY[p];
 
 /* ----------------------------------------------------------------------------
+ * Member avatar helpers — turn a member into initials + a stable color so the
+ * same person always shows the same avatar.
+ * -------------------------------------------------------------------------- */
+
+const AVATAR_COLORS = [
+  "bg-brand-dark",
+  "bg-success",
+  "bg-slate-500",
+  "bg-slate-600",
+  "bg-slate-700",
+];
+
+export function memberInitials(name: string): string {
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
+export function memberColor(id: string): string {
+  let hash = 0;
+  for (let i = 0; i < id.length; i += 1) hash = (hash + id.charCodeAt(i)) % 997;
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
+}
+
+/* ----------------------------------------------------------------------------
  * Typed API calls
  * -------------------------------------------------------------------------- */
 
@@ -215,6 +253,8 @@ export const projectsApi = {
     api
       .post<ApiProject>("/projects", { name, description })
       .then((r) => r.data),
+  update: (id: string, input: { name?: string; description?: string }) =>
+    api.patch<ApiProject>(`/projects/${id}`, input).then((r) => r.data),
   remove: (id: string) =>
     api.delete<{ id: string }>(`/projects/${id}`).then((r) => r.data),
 };
@@ -227,6 +267,7 @@ export const tasksApi = {
     description?: string;
     status?: ApiTaskStatus;
     priority?: ApiTaskPriority;
+    assigneeId?: string;
   }) => api.post<ApiTask>("/tasks", input).then((r) => r.data),
   update: (
     id: string,
@@ -235,6 +276,7 @@ export const tasksApi = {
       description?: string;
       status?: ApiTaskStatus;
       priority?: ApiTaskPriority;
+      assigneeId?: string | null;
     },
   ) => api.patch<ApiTask>(`/tasks/${id}`, input).then((r) => r.data),
   updateStatus: (id: string, status: ApiTaskStatus) =>
@@ -247,4 +289,12 @@ export const tasksApi = {
 
 export const changelogApi = {
   list: () => api.get<ApiChangelog[]>("/changelogs").then((r) => r.data),
+};
+
+export const membersApi = {
+  list: () => api.get<ApiMember[]>("/members").then((r) => r.data),
+  create: (name: string, role: string) =>
+    api.post<ApiMember>("/members", { name, role }).then((r) => r.data),
+  remove: (id: string) =>
+    api.delete<{ id: string }>(`/members/${id}`).then((r) => r.data),
 };

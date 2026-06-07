@@ -17,14 +17,17 @@ import {
 } from "@/lib/data";
 import {
   apiErrorMessage,
+  membersApi,
   projectsApi,
   tasksApi,
   toApiPriority,
   toApiStatus,
+  type ApiMember,
   type ApiProject,
 } from "@/lib/api";
 import {
   CHANGELOG_CHANGED,
+  MEMBERS_CHANGED,
   PROJECTS_CHANGED,
   TASKS_CHANGED,
   emitChange,
@@ -58,21 +61,34 @@ export function TaskModalProvider({ children }: { children: ReactNode }) {
   const [editing, setEditing] = useState<Task | null>(null);
   const [defaultStatus, setDefaultStatus] = useState<TaskStatus>("todo");
   const [projects, setProjects] = useState<ApiProject[]>([]);
+  const [members, setMembers] = useState<ApiMember[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const toast = useToast();
 
-  // Keep the project picker in sync with the user's projects.
+  // Keep the project + assignee pickers in sync with the user's data.
   useEffect(() => {
-    const load = () => {
+    const loadProjects = () => {
       projectsApi
         .list()
         .then(setProjects)
         .catch(() => {});
     };
-    load();
-    return onChange(PROJECTS_CHANGED, load);
+    const loadMembers = () => {
+      membersApi
+        .list()
+        .then(setMembers)
+        .catch(() => {});
+    };
+    loadProjects();
+    loadMembers();
+    const offProjects = onChange(PROJECTS_CHANGED, loadProjects);
+    const offMembers = onChange(MEMBERS_CHANGED, loadMembers);
+    return () => {
+      offProjects();
+      offMembers();
+    };
   }, []);
 
   const openCreate = useCallback((status?: TaskStatus) => {
@@ -104,6 +120,7 @@ export function TaskModalProvider({ children }: { children: ReactNode }) {
     const description = String(form.get("description") ?? "").trim() || undefined;
     const status = toApiStatus(String(form.get("status")) as TaskStatus);
     const priority = toApiPriority(String(form.get("priority")) as TaskPriority);
+    const assigneeValue = String(form.get("assignee") ?? "");
 
     try {
       if (editing) {
@@ -112,10 +129,19 @@ export function TaskModalProvider({ children }: { children: ReactNode }) {
           description,
           status,
           priority,
+          // empty string => unassign
+          assigneeId: assigneeValue || null,
         });
       } else {
         const projectId = String(form.get("project") ?? "");
-        await tasksApi.create({ projectId, title, description, status, priority });
+        await tasksApi.create({
+          projectId,
+          title,
+          description,
+          status,
+          priority,
+          assigneeId: assigneeValue || undefined,
+        });
       }
       // Refresh the board, the dashboard (progress depends on counts), and the
       // changelog (create/edit are logged).
@@ -157,6 +183,10 @@ export function TaskModalProvider({ children }: { children: ReactNode }) {
     value: c.status,
     label: c.label,
   }));
+  const assigneeOptions = [
+    { value: "", label: "Unassigned" },
+    ...members.map((m) => ({ value: m.id, label: `${m.name} — ${m.role}` })),
+  ];
   const noProjects = !editing && projects.length === 0;
 
   return (
@@ -251,6 +281,12 @@ export function TaskModalProvider({ children }: { children: ReactNode }) {
               defaultValue={editing?.priority ?? "medium"}
             />
           </div>
+          <Select
+            label="Assignee"
+            name="assignee"
+            options={assigneeOptions}
+            defaultValue={editing?.assigneeId ?? ""}
+          />
           <Textarea
             label="Description"
             name="description"

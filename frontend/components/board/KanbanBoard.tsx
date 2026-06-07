@@ -22,6 +22,8 @@ import {
   toApiStatus,
   toUiPriority,
   toUiStatus,
+  memberInitials,
+  memberColor,
   type ApiTask,
 } from "@/lib/api";
 import {
@@ -45,6 +47,13 @@ function toUiTask(t: ApiTask): Task {
     project: t.project?.name ?? "",
     status: toUiStatus(t.status),
     priority: toUiPriority(t.priority),
+    assigneeId: t.assignee?.id,
+    assignee: t.assignee
+      ? {
+          initials: memberInitials(t.assignee.name),
+          color: memberColor(t.assignee.id),
+        }
+      : undefined,
   };
 }
 

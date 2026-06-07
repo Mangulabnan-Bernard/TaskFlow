@@ -226,6 +226,8 @@ export interface Task {
   status: TaskStatus;
   priority: TaskPriority;
   assignee?: TeamAvatar;
+  /** Assigned team member id (used to prefill the edit modal); undefined if unassigned. */
+  assigneeId?: string;
 }
 
 export interface KanbanColumnDef {

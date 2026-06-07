@@ -22,15 +22,18 @@ export interface ProjectSummary {
 export function ProjectCard({
   project,
   summary,
+  onEdit,
   onDelete,
 }: {
   project: Project;
   summary?: ProjectSummary;
+  onEdit?: () => void;
   onDelete?: (id: string) => void;
 }) {
   const status = STATUS[project.status];
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const hasMenu = Boolean(onEdit || onDelete);
 
   function closeMenu() {
     setMenuOpen(false);
@@ -41,7 +44,7 @@ export function ProjectCard({
     <article className="flex flex-col rounded-xl border border-line bg-elevated p-5 transition-colors hover:border-slate-600">
       <div className="flex items-center justify-between">
         <Badge variant={status.variant}>{status.label}</Badge>
-        {onDelete ? (
+        {hasMenu ? (
           <div className="relative">
             <button
               type="button"
@@ -67,7 +70,20 @@ export function ProjectCard({
                   role="menu"
                   className="absolute right-0 top-9 z-20 w-44 overflow-hidden rounded-lg border border-line bg-surface py-1 shadow-2xl"
                 >
-                  {confirming ? (
+                  {onEdit && !confirming ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        onEdit();
+                        closeMenu();
+                      }}
+                      className="flex w-full items-center px-3 py-2 text-left text-sm text-slate-200 hover:bg-elevated"
+                    >
+                      Edit project
+                    </button>
+                  ) : null}
+                  {onDelete && confirming ? (
                     <button
                       type="button"
                       role="menuitem"
@@ -79,7 +95,8 @@ export function ProjectCard({
                     >
                       Confirm delete
                     </button>
-                  ) : (
+                  ) : null}
+                  {onDelete && !confirming ? (
                     <button
                       type="button"
                       role="menuitem"
@@ -88,7 +105,7 @@ export function ProjectCard({
                     >
                       Delete project
                     </button>
-                  )}
+                  ) : null}
                 </div>
               </>
             ) : null}

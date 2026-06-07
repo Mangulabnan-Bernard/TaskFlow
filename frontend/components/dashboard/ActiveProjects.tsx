@@ -6,6 +6,7 @@ import type { Project } from "@/lib/data";
 import { ProjectCard, type ProjectSummary } from "@/components/dashboard/ProjectCard";
 import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/components/ui/Toast";
+import { useNewProject } from "@/components/project/NewProjectModal";
 import {
   PROJECTS_CHANGED,
   TASKS_CHANGED,
@@ -14,7 +15,7 @@ import {
 } from "@/lib/events";
 
 /** Maps a backend project into the shape ProjectCard renders. */
-function toCardProject(p: ApiProject): Project {
+export function toCardProject(p: ApiProject): Project {
   const progress = p.taskCount
     ? Math.round((p.doneCount / p.taskCount) * 100)
     : 0;
@@ -30,7 +31,7 @@ function toCardProject(p: ApiProject): Project {
   };
 }
 
-function toSummary(p: ApiProject): ProjectSummary {
+export function toSummary(p: ApiProject): ProjectSummary {
   return {
     total: p.taskCount,
     done: p.doneCount,
@@ -43,6 +44,7 @@ export function ActiveProjects() {
   const [projects, setProjects] = useState<ApiProject[] | null>(null);
   const [error, setError] = useState(false);
   const toast = useToast();
+  const { openEdit } = useNewProject();
 
   function handleDelete(id: string) {
     projectsApi
@@ -109,6 +111,9 @@ export function ActiveProjects() {
           key={p.id}
           project={toCardProject(p)}
           summary={toSummary(p)}
+          onEdit={() =>
+            openEdit({ id: p.id, name: p.name, description: p.description })
+          }
           onDelete={handleDelete}
         />
       ))}
