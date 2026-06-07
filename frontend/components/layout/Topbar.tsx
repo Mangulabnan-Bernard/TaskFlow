@@ -1,25 +1,13 @@
 "use client";
 
-import { LogoutIcon, MenuIcon } from "@/components/icons";
-import { Avatar } from "@/components/ui/Avatar";
-import { useAuth } from "@/lib/auth";
+import { MenuIcon } from "@/components/icons";
 import { useMobileNav } from "@/components/layout/MobileNav";
 import { SearchBar } from "@/components/layout/SearchBar";
 import { NotificationsMenu } from "@/components/layout/NotificationsMenu";
 import { HelpMenu } from "@/components/layout/HelpMenu";
-
-/** "Demo User" -> "DU", "Alex" -> "A". */
-function initialsOf(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
-}
+import { UserMenu } from "@/components/layout/UserMenu";
 
 export function Topbar() {
-  const { user, logout } = useAuth();
   const { toggle } = useMobileNav();
 
   return (
@@ -39,30 +27,8 @@ export function Topbar() {
       <div className="ml-auto flex items-center gap-2">
         <NotificationsMenu />
         <HelpMenu />
-
         <div className="mx-1 hidden h-8 w-px bg-line sm:block" />
-
-        <div className="flex items-center gap-3">
-          <div className="hidden text-right leading-tight sm:block">
-            <p className="text-sm font-semibold text-white">
-              {user?.name ?? "—"}
-            </p>
-            <p className="label-eyebrow text-slate-500">{user?.email ?? ""}</p>
-          </div>
-          <Avatar
-            initials={user ? initialsOf(user.name) : "?"}
-            color="bg-gradient-to-br from-brand to-brand-dark"
-          />
-          <button
-            type="button"
-            onClick={logout}
-            aria-label="Sign out"
-            title="Sign out"
-            className="focus-ring rounded-lg p-2 text-slate-400 transition-colors hover:bg-elevated hover:text-white"
-          >
-            <LogoutIcon className="size-5" />
-          </button>
-        </div>
+        <UserMenu />
       </div>
     </header>
   );
