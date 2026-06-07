@@ -35,6 +35,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
   const { login, register } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showResetHint, setShowResetHint] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -107,7 +108,18 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
 
         <div className="space-y-1.5">
           {mode === "login" ? (
-            <span className="text-sm font-medium text-slate-200">Password</span>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-slate-200">
+                Password
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowResetHint((v) => !v)}
+                className="focus-ring rounded text-xs font-medium text-brand transition-colors hover:text-brand-light"
+              >
+                Forgot password?
+              </button>
+            </div>
           ) : null}
           <Input
             label={mode === "signup" ? "Password" : undefined}
@@ -119,6 +131,14 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
             hint={mode === "signup" ? "At least 6 characters." : undefined}
             required
           />
+          {mode === "login" && showResetHint ? (
+            <p className="text-xs leading-relaxed text-slate-500">
+              Password reset isn’t available in this demo. Try the seeded demo
+              account (<span className="text-slate-300">demo@taskflow.dev</span> /{" "}
+              <span className="text-slate-300">password123</span>) or create a new
+              account.
+            </p>
+          ) : null}
         </div>
 
         <Button type="submit" fullWidth size="lg" disabled={submitting}>
