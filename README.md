@@ -1,10 +1,11 @@
 # TaskFlow — Management Suite
 
 A high-performance project management tool for planning, tracking, and shipping
-work. The **frontend** (Next.js, in [`frontend/`](frontend/)) is feature-complete on mock
-data — app shell, UI library, dashboard, auth screens, and a Kanban board. The
-**backend** (NestJS, in [`backend/`](backend/)) provides the full API — auth, projects,
-tasks, and an auto-logged changelog. Next up: wiring the two together.
+work. It's a full-stack app: a **Next.js** frontend (in [`frontend/`](frontend/)) — app
+shell, UI library, dashboard, auth screens, and a drag-and-drop Kanban board — talking to
+a **NestJS** API (in [`backend/`](backend/)) for auth, projects, tasks, and an auto-logged
+changelog, persisted to MySQL via Prisma. The two are wired together end-to-end: JWT auth,
+live board updates with optimistic drag-and-drop, and a changelog that records task activity.
 
 ## Tech Stack
 
@@ -95,9 +96,9 @@ tasks, and an auto-logged changelog. Next up: wiring the two together.
 
 **Sprint 10 — README + deploy + submit (Buffer)**
 
-- [ ] Finalize README: overview, setup steps, `.env` template, known issues
-- [ ] Optional: deploy FE (Vercel), BE (Render / Railway)
-- [ ] Final code review and cleanup
+- [x] Finalize README: overview, setup steps, `.env` template, known issues
+- [x] Document deployment: FE (Vercel), BE (Render / Railway) — see [Deployment](#deployment)
+- [x] Final code review and cleanup
 - [ ] Submit GitHub link
 
 ## Current Status
@@ -134,8 +135,11 @@ surfaces success/error feedback for creates, edits, and failed requests; loading
 and empty/error states cover the dashboard, board, and changelog; and a responsive pass
 collapses the sidebar into a slide-in drawer (hamburger in the topbar) on small screens.
 
-**Next up — Sprint 10 (buffer):** finalize the README, optional deploy, final cleanup, and
-submit.
+**Delivery (Sprint 10)** — the README is finalized (overview, setup, `.env` templates,
+[Deployment](#deployment), and [Known Issues](#known-issues--limitations)); the backend's
+CORS config accepts the deployed frontend via `FRONTEND_URL`; and the code has had a final
+review/cleanup pass. What remains is optional — the actual hosted deploy (needs your own
+Vercel / Render accounts) and submitting the repository link.
 
 ## Getting Started
 
@@ -227,4 +231,73 @@ The UI is a fixed dark theme. Brand and surface colors are defined as Tailwind v
 `@theme` tokens in [`frontend/app/globals.css`](frontend/app/globals.css) (e.g. `--color-brand`,
 `--color-surface`), which generate the `bg-*`, `text-*`, and `border-*` utilities
 used throughout.
+
+## Deployment
+
+The app is three separate pieces — frontend, backend, and database — so a hosted deploy
+means placing each somewhere and pointing them at each other with environment variables.
+Locally everything runs on `localhost`; in the cloud the frontend goes on **Vercel**, the
+NestJS server on a Node host like **Render** or **Railway**, and the database on a managed
+provider.
+
+### Database first
+
+The Prisma schema targets **MySQL** (`provider = "mysql"` in
+[`backend/prisma/schema.prisma`](backend/prisma/schema.prisma)). Two routes:
+
+- **Keep MySQL (no code change):** host it on a managed MySQL provider — Railway, PlanetScale,
+  or Aiven — and use the connection string they give you as `DATABASE_URL`.
+- **Switch to Postgres:** Render's and Neon's managed databases are Postgres-only. To use one,
+  change the datasource `provider` to `"postgresql"` and re-apply the schema. The models here
+  use no MySQL-specific features, so the switch is small — but note it also changes your
+  **local** setup, so you'd run Postgres locally too (or keep MySQL local and Postgres in prod
+  via separate `DATABASE_URL`s).
+
+### Backend (Render / Railway)
+
+Deploy the [`backend/`](backend/) directory as a web service:
+
+- **Build:** `npm install && npm run build && npx prisma db push`
+- **Start:** `npm run start:prod`
+- **Environment variables:**
+  - `DATABASE_URL` — from your database provider
+  - `JWT_SECRET` — a long random string
+  - `JWT_EXPIRES_IN` — e.g. `7d`
+  - `FRONTEND_URL` — your deployed frontend URL (used for CORS; see
+    [`backend/src/main.ts`](backend/src/main.ts))
+  - `PORT` — most hosts set this automatically; the server reads it
+  - `ALLOW_SEED` — set to `true` only if you want `POST /api/seed` reachable in production
+
+### Frontend (Vercel)
+
+Deploy the [`frontend/`](frontend/) directory (set it as the project root):
+
+- **Environment variable:** `NEXT_PUBLIC_API_URL` = `https://<your-backend-host>/api`
+- That's the only wiring needed — the Axios client reads it
+  ([`frontend/lib/api.ts`](frontend/lib/api.ts)); it falls back to `http://localhost:3001/api`
+  in development.
+
+After both are live, set the backend's `FRONTEND_URL` to the Vercel domain so CORS allows it,
+then (optionally) call `POST /api/seed` once — with `ALLOW_SEED=true` — to load demo data.
+
+> **Free-tier caveats:** Render's free web service spins down after ~15 min idle (the first
+> request afterward takes ~30–50s to wake), and its free Postgres database expires after 90
+> days. Fine for a demo or portfolio; plan for a paid tier for anything real.
+
+## Known Issues / Limitations
+
+- **Some dashboard widgets use mock data.** Upcoming deadlines, the activity feed, and the
+  workload chart read from [`frontend/lib/data.ts`](frontend/lib/data.ts) rather than the API;
+  the Active Projects list and Kanban board are fully live.
+- **"Real-time" is single-client.** Cross-view updates use a small in-app event bus
+  ([`frontend/lib/events.ts`](frontend/lib/events.ts)) plus refetching — there are no
+  WebSockets, so changes don't push to other users' open sessions live.
+- **Schema is applied with `prisma db push`, not migrations.** There's no
+  `prisma/migrations` history; the schema is pushed directly. Fine for this project, but a
+  production app would want versioned migrations.
+- **No automated tests yet.** Jest is configured but there are no spec files; the API is
+  verified manually (see [`TESTING.md`](TESTING.md)) and `npm run build` / `npm run lint` pass.
+- **`POST /api/seed` resets demo data** and is open by default in development. It's blocked in
+  production unless `ALLOW_SEED=true`.
+- **Fixed dark theme.** There's no light-mode toggle; colors are hard-coded theme tokens.
 
